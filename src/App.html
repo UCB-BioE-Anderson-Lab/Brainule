@@ -1,9 +1,10 @@
 <!-- App.html — JS includes in dependency order -->
-<?!= include('js/bootstrap'); ?>
-<?!= include('js/questions/question_base'); ?>
-<?!= include('js/questions/multiple_choice'); ?>
-<?!= include('js/question_factory'); ?>
-<?!= include('js/content_service'); ?>
-<?!= include('js/event_logger'); ?>
-<?!= include('js/renderers'); ?>
-<?!= include('js/controller'); ?>
+<!-- clasp strips the trailing .html, so bootstrap.js.html is referenced as js/bootstrap.js -->
+<?!= include('js/bootstrap.js'); ?>
+<?!= include('js/questions/question_base.js'); ?>
+<?!= include('js/questions/multiple_choice.js'); ?>
+<?!= include('js/question_factory.js'); ?>
+<?!= include('js/content_service.js'); ?>
+<?!= include('js/event_logger.js'); ?>
+<?!= include('js/renderers.js'); ?>
+<?!= include('js/controller.js'); ?>
