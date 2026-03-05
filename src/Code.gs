@@ -2,8 +2,10 @@
 
 // ── Configuration ─────────────────────────────────────────────────────────
 
-const FOLDER_ID_KEY_ = 'BRAINULE_COURSE_FOLDER_ID';
-const OVERVIEW_TAB_  = 'Overview';
+const FOLDER_ID_KEY_          = 'BRAINULE_COURSE_FOLDER_ID';
+const OVERVIEW_TAB_           = 'Overview';
+const RESPONSES_FOLDER_NAME_  = 'Responses';
+const RESPONSES_ID_KEY_PREFIX_= 'BRAINULE_RESP_';
 
 // ── Entry point ───────────────────────────────────────────────────────────
 
@@ -14,6 +16,7 @@ function doGet(e) {
   }
   try {
     const data     = loadCourseData_(courseSlug);
+    data.userEmail = Session.getActiveUser().getEmail();
     const template = HtmlService.createTemplateFromFile('Index');
     template.bootstrapData = JSON.stringify(data);
     return template.evaluate()
@@ -36,6 +39,88 @@ function errorPage_(message) {
     'code{background:#f0f2f5;padding:2px 6px;border-radius:3px}</style>' +
     '<h2>Brainule</h2><p>' + message + '</p>'
   ).setTitle('Brainule');
+}
+
+// ── Event logging (called from client via google.script.run) ──────────────
+
+/**
+ * Appends one answer-submission event to the course responses sheet.
+ * Errors are swallowed so a logging failure never breaks the student UI.
+ */
+function logEvent(payload) {
+  try {
+    const ss    = getOrCreateResponsesSheet_(payload.courseSlug);
+    const sheet = getOrCreateTopicTab_(ss, payload.topicSlug);
+    sheet.appendRow([
+      new Date(),                                          // timestamp (server clock)
+      payload.email             || '',
+      payload.sessionId         || '',
+      payload.courseSlug        || '',
+      payload.topicSlug         || '',
+      payload.questionSlug      || '',
+      payload.answerGiven       || '',
+      payload.correctAnswer     || '',
+      payload.isCorrect         === true,
+      payload.geminiClicked     === true,
+      payload.timeToAnswerS     != null ? payload.timeToAnswerS : '',
+      payload.questionIndex     != null ? payload.questionIndex : ''
+    ]);
+  } catch (e) {
+    console.error('Brainule logEvent failed: ' + e.message);
+  }
+}
+
+function getResponsesFolder_() {
+  const coursesFolder = getCourseFolder_();
+  const existing = coursesFolder.getFoldersByName(RESPONSES_FOLDER_NAME_);
+  if (existing.hasNext()) return existing.next();
+  return coursesFolder.createFolder(RESPONSES_FOLDER_NAME_);
+}
+
+function getOrCreateResponsesSheet_(courseSlug) {
+  const props    = PropertiesService.getScriptProperties();
+  const cacheKey = RESPONSES_ID_KEY_PREFIX_ + courseSlug;
+  const cachedId = props.getProperty(cacheKey);
+
+  if (cachedId) {
+    try { return SpreadsheetApp.openById(cachedId); } catch (e) { /* stale */ }
+  }
+
+  const folder = getResponsesFolder_();
+  const name   = 'responses_' + courseSlug;
+  const files  = folder.getFilesByName(name);
+  if (files.hasNext()) {
+    const ss = SpreadsheetApp.open(files.next());
+    props.setProperty(cacheKey, ss.getId());
+    return ss;
+  }
+
+  const ss = SpreadsheetApp.create(name);
+  DriveApp.getFileById(ss.getId()).moveTo(folder);
+  props.setProperty(cacheKey, ss.getId());
+  return ss;
+}
+
+function getOrCreateTopicTab_(ss, topicSlug) {
+  const existing = ss.getSheetByName(topicSlug);
+  if (existing) return existing;
+
+  const sheet   = ss.insertSheet(topicSlug);
+  const headers = [
+    'timestamp', 'email', 'session_id', 'course_slug', 'topic_slug',
+    'question_slug', 'answer_given', 'correct_answer', 'is_correct',
+    'gemini_clicked', 'time_to_answer_s', 'question_index'
+  ];
+  sheet.appendRow(headers);
+  sheet.setFrozenRows(1);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  sheet.autoResizeColumns(1, headers.length);
+
+  // Remove the default blank sheet on first tab creation
+  const blank = ss.getSheetByName('Sheet1');
+  if (blank && ss.getSheets().length > 1) ss.deleteSheet(blank);
+
+  return sheet;
 }
 
 // ── Course data loading ────────────────────────────────────────────────────

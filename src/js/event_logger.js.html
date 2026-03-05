@@ -1,13 +1,52 @@
 <script>
-// event_logger.js — no-op event logger (v1 stub)
+// event_logger.js — logs answer submissions to Google Sheets via google.script.run
 
 'use strict';
 
-class NoOpEventLogger {
-  logQuestionPresented(payload) { /* no-op */ }
-  logAnswerSubmitted(payload)   { /* no-op */ }
-  logGeminiPromptCopied(payload){ /* no-op */ }
+class SheetsEventLogger {
+  constructor(courseSlug, userEmail) {
+    this.courseSlug     = courseSlug;
+    this.userEmail      = userEmail;
+    this.sessionId      = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    this._presentedAt   = null;
+    this._geminiClicked = false;
+  }
+
+  logQuestionPresented(payload) {
+    this._presentedAt   = Date.now();
+    this._geminiClicked = false;
+  }
+
+  logAnswerSubmitted(payload) {
+    var timeToAnswerS = this._presentedAt !== null
+      ? Math.round((Date.now() - this._presentedAt) / 1000)
+      : null;
+
+    var self = this;
+    google.script.run
+      .withFailureHandler(function(err) {
+        console.warn('Brainule: logEvent failed —', err);
+      })
+      .logEvent({
+        email:          self.userEmail,
+        sessionId:      self.sessionId,
+        courseSlug:     self.courseSlug,
+        topicSlug:      payload.topicSlug,
+        questionSlug:   payload.questionSlug,
+        answerGiven:    payload.submittedAnswer,
+        correctAnswer:  payload.canonicalAnswer,
+        isCorrect:      payload.isCorrect,
+        geminiClicked:  self._geminiClicked,
+        timeToAnswerS:  timeToAnswerS,
+        questionIndex:  payload.questionIndex
+      });
+  }
+
+  logGeminiPromptCopied(payload) {
+    this._geminiClicked = true;
+  }
 }
 
-const EventLogger = new NoOpEventLogger();
+var _data = window.BRAINULE_DATA || {};
+var EventLogger = new SheetsEventLogger(_data.courseSlug || '', _data.userEmail || '');
 </script>
