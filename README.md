@@ -11,9 +11,10 @@ Access requires a Google account. No custom login UI — access control is handl
 - [Architecture overview](#architecture-overview)
 - [Repository layout](#repository-layout)
 - [Prerequisites](#prerequisites)
-- [Installation](#installation)
+- [Installation and first-time setup](#installation-and-first-time-setup)
 - [Development workflow](#development-workflow)
-- [Adding questions](#adding-questions)
+- [Course sheet format](#course-sheet-format)
+- [Creating a new course](#creating-a-new-course)
 - [Data collection (future)](#data-collection-future)
 - [Question schema reference](#question-schema-reference)
 
@@ -21,15 +22,29 @@ Access requires a Google account. No custom login UI — access control is handl
 
 ## Architecture overview
 
-Brainule runs entirely on Google Apps Script. There is no separate server, database, or build step.
+Brainule separates the **app** (this repository, deployed as an Apps Script web app) from the **content** (Google Sheets stored in a Drive folder). The app never needs to be modified to add or change course content.
 
 ```
-Browser  ←→  Google Apps Script (doGet)  ←→  Content (hardcoded in Code.gs for now)
+Browser
+  ↕
+Google Apps Script  (doGet: reads ?course= parameter)
+  ↕
+Google Drive folder  ("Brainule Courses")
+  ↕
+Course spreadsheet   (one per course, named by slug)
+  ↕
+  ├── Overview tab   → topic list + course metadata
+  └── <topic_slug> tabs  → questions for each topic
 ```
 
-- `doGet()` assembles the HTML page server-side and injects all topic and question data as a bootstrap JSON object (`window.BRAINULE_BOOTSTRAP`).
-- The front end is plain HTML, CSS, and JavaScript — no framework, no module bundler.
-- Content (topics and questions) lives in `Code.gs` until a Sheets-based authoring flow is added.
+**Request flow:**
+1. Student visits `<web-app-url>?course=bioe_234_midterm`
+2. `doGet()` looks for a spreadsheet named `bioe_234_midterm` in the Brainule Courses folder
+3. Reads the Overview tab (topics) and all topic tabs (questions)
+4. Injects everything as `window.BRAINULE_BOOTSTRAP` and serves the page
+5. Front-end JS renders the three-panel study UI
+
+The front end is plain HTML, CSS, and JavaScript — no framework, no module bundler. It is entirely agnostic to where the content came from.
 
 ---
 
@@ -40,11 +55,11 @@ Brainule/
 ├── .clasp.json               — clasp config: links this repo to the Apps Script project
 ├── README.md
 └── src/                      — everything pushed to Apps Script (clasp rootDir)
-    ├── appsscript.json       — Apps Script manifest (timezone, runtime, webapp settings)
-    ├── Code.gs               — server-side: doGet(), include(), topic list, question bank
+    ├── appsscript.json       — Apps Script manifest (timezone, runtime)
+    ├── Code.gs               — server-side: doGet(), sheet readers, setup functions
     ├── Index.html            — root HTML template; injects bootstrap data and includes all JS
-    ├── Styles.html           — all CSS (included into Index.html at render time)
-    ├── App.html              — reference comment listing JS include order (not part of include chain)
+    ├── Styles.html           — all CSS
+    ├── App.html              — reference only: lists JS include order (not in include chain)
     └── js/
         ├── bootstrap.js.html         — validates window.BRAINULE_BOOTSTRAP on load
         ├── content_service.js.html   — normalizes bootstrap data into runtime structures
@@ -81,46 +96,55 @@ clasp login
 
 ---
 
-## Installation
+## Installation and first-time setup
 
-### Clone and link to an existing Apps Script project
+### 1. Clone and push to Apps Script
 
 ```bash
 git clone <repo-url>
 cd Brainule
-```
-
-The `.clasp.json` already contains the `scriptId` for the existing project. If you want to create a fresh Apps Script project instead:
-
-```bash
-# Remove the existing .clasp.json first
-rm .clasp.json
-clasp create --title "Brainule" --type standalone --rootDir src
-```
-
-### Push code to Apps Script
-
-```bash
 clasp push --force
 ```
 
-### Deploy as a web app (do this in the browser, not via clasp)
+The `.clasp.json` is already linked to the existing Apps Script project. To start a completely fresh project instead:
 
-1. Open the Apps Script editor:
-   `https://script.google.com/d/<your-scriptId>/edit`
+```bash
+rm .clasp.json
+clasp create --title "Brainule" --type standalone --rootDir src
+clasp push --force
+```
+
+### 2. Deploy as a web app
+
+Do this in the browser — **never use `clasp deploy`**, which resets access settings.
+
+1. Open the Apps Script editor: `https://script.google.com/d/<scriptId>/edit`
 2. **Deploy → New deployment**
-3. Click the gear icon → **Web app**
-4. Set **Execute as**: Me
-5. Set **Who has access**: Anyone with a Google account
-6. Click **Deploy** — copy the web app URL
+3. Gear icon → **Web app**
+4. **Execute as**: Me
+5. **Who has access**: Anyone with a Google account
+6. Click **Deploy** — save the web app URL
 
-> **Important:** Always deploy and update deployments from the Apps Script UI, not via `clasp deploy`. Using `clasp deploy` resets the `Execute as` and access settings, which breaks the app.
+### 3. Run first-time setup
+
+This creates the Drive folder and a seed course sheet.
+
+1. In the Apps Script editor, select `firstTimeSetup` from the function dropdown
+2. Click **Run**
+3. Grant Drive permissions when prompted
+4. Open **View → Executions** to see the folder URL and sheet URL in the log output
+
+`firstTimeSetup()` is safe to re-run — it does nothing if the folder is already configured.
+
+After running, your Drive will contain:
+- A folder called **Brainule Courses**
+- A spreadsheet named **bioe_234_midterm_sample** in that folder
+
+Test it: `<web-app-url>?course=bioe_234_midterm_sample`
 
 ---
 
 ## Development workflow
-
-Make changes locally, push to Apps Script, then update the deployment:
 
 ```bash
 # 1. Edit files in src/
@@ -129,87 +153,100 @@ clasp push --force
 
 # 3. Update the deployment in the browser:
 #    Apps Script editor → Deploy → Manage deployments
-#    → pencil icon on your deployment → "New version" → Deploy
+#    → pencil icon → "New version" → Deploy
 ```
 
 The web app URL stays the same across version updates; only the version number increments.
 
-### Opening the Apps Script editor
-
 ```bash
-clasp open
+clasp open    # opens the Apps Script editor in your browser
 ```
 
-### Viewing server-side logs
-
-Apps Script logs appear in the editor under **Executions** (left sidebar). Server-side errors from `doGet()` will appear there if the web app returns a Drive error page instead of loading.
+Server-side errors appear in the editor under **Executions** (left sidebar). If the web app shows a Drive error page instead of loading, that's a `doGet()` exception — check Executions for the message.
 
 ---
 
-## Adding questions
+## Course sheet format
 
-Questions live in `Code.gs` in the `getQuestionBank_()` function. Topics live in `getTopicsFlat_()`.
+Each course is a single Google Spreadsheet in the Brainule Courses folder. The filename is the course slug (e.g. `bioe_234_midterm`) and is used directly in the URL.
 
-### Adding a topic
+### Overview tab
 
-Add an entry to the array returned by `getTopicsFlat_()`:
+The first tab must be named **Overview**. It has two sections separated by a blank row.
 
-```javascript
-{
-  "topic_slug": "your_topic_slug",
-  "title": "Display title for the sidebar",
-  "scope": "Paragraph describing what this topic covers.",
-  "path": ["category", "subcategory", "subtopics"]
-}
-```
+**Section 1 — course metadata** (key/value pairs):
 
-`topic_slug` must be unique and stable — it is the key used to look up questions.
+| field | value |
+|---|---|
+| title | BioE 134/234 Midterm Prep |
 
-### Adding questions to a topic
+**Section 2 — topic list** (one row per topic):
 
-In `getQuestionBank_()`, add or extend the array for your topic slug:
+| topic_slug | title | scope | path[0] | path[1] | path[2] |
+|---|---|---|---|---|---|
+| data_types_containers_and_sequence_operations | Data types, containers... | Variables as names... | cs | python_literacy | subtopics |
 
-```javascript
-"your_topic_slug": [
-  {
-    "slug": "unique-question-slug",
-    "question_format": "multiple_choice",
-    "difficulty": "easy",            // "easy" | "medium" | "hard"
-    "topic": "Short descriptor shown under the question",
-    "question": "Question text. Use <python>code</python> for inline code or multiline blocks, and <pre>sequence</pre> for sequence literals.",
-    "choices": {
-      "A": "First choice text",
-      "B": "Second choice text",
-      "C": "Third choice text",
-      "D": "Fourth choice text"
-    },
-    "answer": "B",
-    "explanation": "Explanation shown after the student answers."
-  }
-]
-```
+`topic_slug` is the stable identifier used to name topic tabs and look up questions. It must be unique within the course.
 
-### Text formatting in questions and explanations
+### Topic tabs
+
+Each topic that has questions gets its own tab, named exactly as the `topic_slug`. Topics with no tab show an empty-state message in the UI.
+
+Header row followed by one question per row:
+
+| slug | question_format | difficulty | topic | question | answer | explanation | choice[A] | choice[B] | choice[C] | choice[D] |
+|---|---|---|---|---|---|---|---|---|---|---|
+| name-binding | multiple_choice | easy | Variable references... | How many elements... | B | Assignment binds... | 3, because... | 4, because... | 4, because... | Error... |
+
+- `answer` is the key of the correct choice (e.g. `B`)
+- `choice[X]` columns are collected into a `choices` object: `{ A: "...", B: "...", ... }`
+- Any number of choices is supported; add more `choice[X]` columns as needed
+- Blank `choice[X]` cells are ignored
+
+### Text formatting in question and explanation cells
 
 | Markup | Renders as |
 |---|---|
-| `<python>x = 1</python>` | Inline code block |
-| `<python>\nx = 1\ny = 2\n</python>` | Multiline code block |
+| `<python>x = 1</python>` | Inline code |
+| `<python>` + newline + code + newline + `</python>` | Code block |
 | `<pre>ATGCATGC</pre>` | Inline monospace (for sequences, literals) |
 
-### Planned: loading questions from Google Sheets
+---
 
-The runtime UI reads only from `window.BRAINULE_BOOTSTRAP`, which is assembled in `doGet()`. The front end is agnostic to the data source. To switch to Sheets-based content, replace the bodies of `getTopicsFlat_()` and `getQuestionBank_()` in `Code.gs` with Sheets API calls — no front-end changes required.
+## Creating a new course
+
+### Option A: use the built-in seed sheet as a template
+
+1. Open the **bioe_234_midterm_sample** sheet in Drive
+2. **File → Make a copy** — name the copy your new course slug (e.g. `my_course_fall_2026`)
+3. Move the copy to the **Brainule Courses** folder
+4. Edit the Overview tab and topic tabs with your content
+5. Visit `<web-app-url>?course=my_course_fall_2026`
+
+### Option B: create a blank sheet from the Apps Script editor
+
+In the Apps Script editor, run:
+```javascript
+createBlankCourseSheet('my_course_fall_2026', 'My Course — Fall 2026')
+```
+
+This creates a sheet with correct headers but no content rows.
+
+### Option C: create and populate from seed data
+
+```javascript
+createCourseSheet('my_course_slug', 'My Course Title')
+```
+
+Creates a sheet pre-populated with the built-in sample content.
 
 ---
 
 ## Data collection (future)
 
-### Event logger seam
+Every user interaction (question presented, answer submitted, Gemini prompt copied) is sent to `EventLogger` in `js/event_logger.js.html`. Currently a no-op — events are received but nothing is stored.
 
-Every user interaction (question presented, answer submitted, Gemini prompt copied) is sent to `EventLogger` in `js/event_logger.js.html`. In v1 this is a no-op: events are received but nothing is stored.
-
-The interface is:
+The interface:
 
 ```javascript
 EventLogger.logQuestionPresented({ topicSlug, questionSlug, questionFormat, presentedAt })
@@ -217,16 +254,7 @@ EventLogger.logAnswerSubmitted({ topicSlug, questionSlug, questionFormat, submit
 EventLogger.logGeminiPromptCopied({ topicSlug, questionSlug, questionFormat, copiedAt })
 ```
 
-### Planned: writing to Google Sheets
-
-To activate logging, replace `NoOpEventLogger` in `event_logger.js.html` with a class that calls `google.script.run` to invoke a server-side function, which then writes rows to a Google Sheet. The planned structure is:
-
-- One spreadsheet
-- One sheet tab per topic (keyed by `topic_slug`)
-- One row per event
-- Columns: timestamp, user identity (if available), question slug, submitted answer, canonical answer, is_correct, score_value
-
-No front-end code changes are needed — only `event_logger.js.html` and a new server-side handler in `Code.gs`.
+To activate logging, replace `NoOpEventLogger` with a class that calls `google.script.run` to invoke a server-side write to a Google Sheet. Planned structure: one responses spreadsheet per course, one tab per topic, one row per event. No front-end changes needed.
 
 ---
 
@@ -237,19 +265,19 @@ No front-end code changes are needed — only `event_logger.js.html` and a new s
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `slug` | string | yes | Stable identifier within the topic |
-| `question_format` | string | yes | Discriminator for the question factory; currently only `"multiple_choice"` |
+| `question_format` | string | yes | `"multiple_choice"` is the only supported value in v1 |
 | `difficulty` | string | yes | `"easy"`, `"medium"`, or `"hard"` |
-| `topic` | string | yes | Short descriptor shown in the UI beneath the difficulty label |
+| `topic` | string | yes | Short descriptor shown beneath the difficulty label |
 | `question` | string | yes | Full question text; supports `<python>` and `<pre>` markup |
 | `explanation` | string | yes | Shown after the student submits an answer |
 
 ### Multiple choice additional fields
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `choices` | object | yes | Map of answer key → answer text; any number of keys |
-| `answer` | string | yes | The key of the correct choice |
+| Field | Type | Notes |
+|---|---|---|
+| `choices` | object | `{ A: "text", B: "text", ... }` — any number of keys, order preserved |
+| `answer` | string | The key of the correct choice |
 
-### Future-safe optional fields (tolerated, not displayed in v1)
+### Future-safe optional fields (tolerated, not displayed)
 
 `tags`, `source_refs`, `author_notes`, `version`, `learning_objective`, `lesson_prompt`
