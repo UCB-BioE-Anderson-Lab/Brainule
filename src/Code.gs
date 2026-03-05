@@ -182,43 +182,47 @@ function readTopicTab_(sheet) {
 // ── First-time setup ───────────────────────────────────────────────────────
 
 /**
- * Run ONCE from the Apps Script editor after deploying:
- *   1. Creates a "Brainule Courses" folder in your Drive root
- *   2. Stores the folder ID in script properties
- *   3. Creates a seed course sheet pre-populated with sample content
+ * Run from the Apps Script editor after deploying. Safe to re-run at any time.
  *
- * Safe to re-run: does nothing if already configured.
- * Check View → Executions for the folder and sheet URLs after running.
+ *  - If no folder is configured (or the stored ID is stale), creates one.
+ *  - If the folder has no course sheets, creates the sample course.
+ *  - If the folder already has courses, leaves everything alone.
+ *
+ * Check View → Executions for URLs after running.
  */
 function firstTimeSetup() {
-  const existing = PropertiesService.getScriptProperties().getProperty(FOLDER_ID_KEY_);
-  if (existing) {
-    Logger.log('Already configured. Folder ID: ' + existing);
-    Logger.log('To reconfigure, delete the BRAINULE_COURSE_FOLDER_ID script property and run again.');
-    return;
+  const props = PropertiesService.getScriptProperties();
+  let folder;
+
+  // Try to use the stored folder ID.
+  const storedId = props.getProperty(FOLDER_ID_KEY_);
+  if (storedId) {
+    try { folder = DriveApp.getFolderById(storedId); } catch (e) { /* stale ID */ }
   }
 
-  const folder = DriveApp.createFolder('Brainule Courses');
-  PropertiesService.getScriptProperties().setProperty(FOLDER_ID_KEY_, folder.getId());
-  Logger.log('Folder created: ' + folder.getUrl());
+  // Create folder if we don't have a valid one.
+  if (!folder) {
+    folder = DriveApp.createFolder('Brainule Courses');
+    props.setProperty(FOLDER_ID_KEY_, folder.getId());
+    Logger.log('Folder created: ' + folder.getUrl());
+  } else {
+    Logger.log('Using existing folder: ' + folder.getUrl());
+  }
 
-  const url = createCourseSheet('bioe_234_midterm_sample', 'BioE 134/234 Midterm Prep');
-  Logger.log('Seed sheet created: ' + url);
-  Logger.log('');
-  Logger.log('Test URL: <your web app URL>?course=bioe_234_midterm_sample');
+  // Seed a sample course only if the folder is empty.
+  const files = folder.getFilesByType(MimeType.GOOGLE_SHEETS);
+  if (!files.hasNext()) {
+    const url = createCourseSheet_('bioe_234_midterm_sample', 'BioE 134/234 Midterm Prep');
+    Logger.log('Seed sheet created: ' + url);
+    Logger.log('Test URL: <your web app URL>?course=bioe_234_midterm_sample');
+  } else {
+    Logger.log('Folder already has course sheets — leaving them alone.');
+  }
 }
 
 // ── Course sheet creation ─────────────────────────────────────────────────
 
-/**
- * Creates a new course sheet in the Brainule Courses folder, pre-populated
- * with the seed topic list and sample questions.
- *
- * Run from the Apps Script editor. Check Executions for the sheet URL.
- *
- * Example: createCourseSheet('bioe_234_midterm', 'BioE 134/234 Midterm Prep')
- */
-function createCourseSheet(courseSlug, courseTitle) {
+function createCourseSheet_(courseSlug, courseTitle) {
   const folder = getCourseFolder_();
   const ss     = SpreadsheetApp.create(courseSlug);
   DriveApp.getFileById(ss.getId()).moveTo(folder);
@@ -226,27 +230,17 @@ function createCourseSheet(courseSlug, courseTitle) {
   writeOverviewTab_(ss, courseTitle, getSeedTopicsFlat_());
   writeTopicTabs_(ss, getSeedQuestionBank_());
 
-  const url = ss.getUrl();
-  Logger.log('Created: ' + url);
-  return url;
+  return ss.getUrl();
 }
 
-/**
- * Creates a blank course sheet with correct headers but no content rows.
- * Use as a starting point for a new course, then fill in the sheet manually.
- *
- * Example: createBlankCourseSheet('my_new_course', 'My New Course')
- */
-function createBlankCourseSheet(courseSlug, courseTitle) {
+function createBlankCourseSheet_(courseSlug, courseTitle) {
   const folder = getCourseFolder_();
   const ss     = SpreadsheetApp.create(courseSlug);
   DriveApp.getFileById(ss.getId()).moveTo(folder);
 
   writeOverviewTab_(ss, courseTitle || courseSlug, []);
 
-  const url = ss.getUrl();
-  Logger.log('Created blank sheet: ' + url);
-  return url;
+  return ss.getUrl();
 }
 
 // ── Sheet writers ──────────────────────────────────────────────────────────
@@ -266,7 +260,13 @@ function writeOverviewTab_(ss, courseTitle, topicsFlat) {
     rows.push([t.topic_slug, t.title, t.scope, p[0] || '', p[1] || '', p[2] || '']);
   }
 
-  sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+  const maxCols = Math.max(...rows.map(r => r.length));
+  const paddedRows = rows.map(r => {
+    const padded = r.slice();
+    while (padded.length < maxCols) padded.push('');
+    return padded;
+  });
+  sheet.getRange(1, 1, paddedRows.length, maxCols).setValues(paddedRows);
   sheet.setFrozenRows(1);
   sheet.getRange(1, 1, 1, 2).setFontWeight('bold');
   sheet.getRange(4, 1, 1, 6).setFontWeight('bold');

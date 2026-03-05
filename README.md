@@ -223,22 +223,17 @@ Header row followed by one question per row:
 4. Edit the Overview tab and topic tabs with your content
 5. Visit `<web-app-url>?course=my_course_fall_2026`
 
-### Option B: create a blank sheet from the Apps Script editor
+### Option B: create from the Apps Script editor (advanced)
 
-In the Apps Script editor, run:
-```javascript
-createBlankCourseSheet('my_course_fall_2026', 'My Course — Fall 2026')
-```
-
-This creates a sheet with correct headers but no content rows.
-
-### Option C: create and populate from seed data
+These internal helpers can be called from the Apps Script editor's script console:
 
 ```javascript
-createCourseSheet('my_course_slug', 'My Course Title')
-```
+// Blank sheet with correct headers — fill in content manually:
+createBlankCourseSheet_('my_course_fall_2026', 'My Course — Fall 2026')
 
-Creates a sheet pre-populated with the built-in sample content.
+// Pre-populated with the built-in sample content:
+createCourseSheet_('my_course_slug', 'My Course Title')
+```
 
 ---
 
