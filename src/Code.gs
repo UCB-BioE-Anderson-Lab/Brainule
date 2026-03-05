@@ -12,7 +12,7 @@ function doGet(e) {
 }
 
 function include(filename) {
-  return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 // ---------------------------------------------------------------------------
