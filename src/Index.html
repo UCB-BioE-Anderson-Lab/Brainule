@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brainule</title>
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <div id="app-shell">
+    <header id="app-header">
+      <span id="app-title">Brainule</span>
+    </header>
+    <div id="app-body">
+      <aside id="panel-topics"></aside>
+      <main id="panel-meta"></main>
+      <section id="panel-question"></section>
+    </div>
+  </div>
+
+  <script>
+    window.BRAINULE_BOOTSTRAP = <?!= bootstrapData ?>;
+  </script>
+  <?!= include('App'); ?>
+</body>
+</html>

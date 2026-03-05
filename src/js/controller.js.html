@@ -1,0 +1,217 @@
+<script>
+// controller.js — application state, navigation, event wiring
+
+'use strict';
+
+(function() {
+
+  // ── State ────────────────────────────────────────────────────
+
+  var state = {
+    topics:       [],
+    questionBank: new Map(),
+    activeSlug:   null,
+    questions:    [],     // QuestionBase[] for active topic
+    qIndex:       0,
+    answered:     false,
+    expanded:     false
+  };
+
+  // ── DOM refs ─────────────────────────────────────────────────
+
+  var panelTopics   = document.getElementById('panel-topics');
+  var panelMeta     = document.getElementById('panel-meta');
+  var panelQuestion = document.getElementById('panel-question');
+
+  // ── Boot ─────────────────────────────────────────────────────
+
+  function init() {
+    var data = ContentService.load(window.BRAINULE_DATA);
+
+    if (data.error && data.topics.length === 0) {
+      Renderers.renderError(panelQuestion, data.error);
+      return;
+    }
+
+    state.topics       = data.topics;
+    state.questionBank = data.questionBank;
+
+    Renderers.renderTopicList(panelTopics, state.topics, null, selectTopic);
+    Renderers.renderMeta(panelMeta, null);
+    Renderers.renderEmptyQuestion(panelQuestion, 'Select a topic to begin.');
+
+    // Select first topic automatically
+    if (state.topics.length > 0) {
+      selectTopic(state.topics[0].topic_slug);
+    }
+  }
+
+  // ── Topic selection ──────────────────────────────────────────
+
+  function selectTopic(slug) {
+    state.activeSlug = slug;
+    state.qIndex     = 0;
+    state.answered   = false;
+    state.expanded   = false;
+    state.questions  = ContentService.getQuestionsForTopic(state.questionBank, slug);
+
+    var topic = state.topics.find(function(t) { return t.topic_slug === slug; });
+
+    Renderers.renderTopicList(panelTopics, state.topics, slug, selectTopic);
+    Renderers.renderMeta(panelMeta, topic);
+
+    if (state.questions.length === 0) {
+      Renderers.renderEmptyQuestion(panelQuestion, 'No questions available for this topic yet.');
+      return;
+    }
+
+    renderCurrentQuestion();
+    logPresented();
+  }
+
+  // ── Question rendering ───────────────────────────────────────
+
+  function renderCurrentQuestion() {
+    state.answered = false;
+    panelQuestion.classList.toggle('expanded', state.expanded);
+
+    Renderers.renderQuestion(
+      panelQuestion,
+      state.questions[state.qIndex],
+      state.qIndex,
+      state.questions.length,
+      onChoiceClick,
+      onPrev,
+      onNext,
+      onExpand,
+      onGemini,
+      state.expanded
+    );
+  }
+
+  // ── Answer submission ────────────────────────────────────────
+
+  function onChoiceClick(key) {
+    if (state.answered) return;
+    state.answered = true;
+
+    var q      = state.questions[state.qIndex];
+    var result = q.validate(key);
+
+    Renderers.revealResult(result, q.getChoices ? q.getChoices() : {});
+    Renderers.renderExplanationText(q.getExplanation());
+
+    EventLogger.logAnswerSubmitted({
+      topicSlug:       state.activeSlug,
+      questionSlug:    q.getSlug(),
+      questionFormat:  q.getQuestionFormat(),
+      submittedAnswer: result.submittedAnswer,
+      canonicalAnswer: result.canonicalAnswer,
+      isCorrect:       result.isCorrect,
+      scoreValue:      result.scoreValue,
+      submittedAt:     new Date().toISOString()
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+
+  function onPrev() {
+    if (state.qIndex > 0) {
+      state.qIndex--;
+      renderCurrentQuestion();
+      logPresented();
+    }
+  }
+
+  function onNext() {
+    if (state.qIndex < state.questions.length - 1) {
+      state.qIndex++;
+      renderCurrentQuestion();
+      logPresented();
+    }
+  }
+
+  // ── Expand toggle ────────────────────────────────────────────
+
+  function onExpand() {
+    state.expanded = !state.expanded;
+    panelQuestion.classList.toggle('expanded', state.expanded);
+    var btn = document.getElementById('btn-expand');
+    if (btn) btn.textContent = state.expanded ? '⊡' : '⊞';
+  }
+
+  // ── Gemini prompt copy ───────────────────────────────────────
+
+  function onGemini() {
+    var q      = state.questions[state.qIndex];
+    var prompt = q.llmPrompt();
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(prompt).then(function() {
+        Renderers.showGeminiFeedback();
+      }).catch(function() {
+        _fallbackCopy(prompt);
+      });
+    } else {
+      _fallbackCopy(prompt);
+    }
+
+    EventLogger.logGeminiPromptCopied({
+      topicSlug:      state.activeSlug,
+      questionSlug:   q.getSlug(),
+      questionFormat: q.getQuestionFormat(),
+      copiedAt:       new Date().toISOString()
+    });
+  }
+
+  function _fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity  = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand('copy'); Renderers.showGeminiFeedback(); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+
+  // ── Logging helpers ──────────────────────────────────────────
+
+  function logPresented() {
+    if (!state.questions.length) return;
+    var q = state.questions[state.qIndex];
+    EventLogger.logQuestionPresented({
+      topicSlug:      state.activeSlug,
+      questionSlug:   q.getSlug(),
+      questionFormat: q.getQuestionFormat(),
+      presentedAt:    new Date().toISOString()
+    });
+  }
+
+  // ── Keyboard shortcuts ───────────────────────────────────────
+
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        onPrev();
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        onNext();
+        break;
+      case 'Escape':
+        if (state.expanded) { state.expanded = false; onExpand(); }
+        break;
+    }
+  });
+
+  // ── Start ────────────────────────────────────────────────────
+
+  init();
+
+})();
+</script>

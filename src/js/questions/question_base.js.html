@@ -1,0 +1,45 @@
+<script>
+// question_base.js — abstract base for all question types
+
+'use strict';
+
+class QuestionBase {
+  constructor(rawQuestion, topicMeta) {
+    if (!rawQuestion || typeof rawQuestion !== 'object') {
+      throw new Error('QuestionBase: rawQuestion must be an object');
+    }
+    this._raw      = rawQuestion;
+    this._topicMeta = topicMeta || {};
+  }
+
+  getSlug()           { return this._raw.slug || ''; }
+  getQuestionFormat() { return this._raw.question_format || ''; }
+  getPromptText()     { return this._raw.question || ''; }
+  getExplanation()    { return this._raw.explanation || ''; }
+  getDisplayTopic()   { return this._raw.topic || ''; }
+  getDifficulty()     { return this._raw.difficulty || ''; }
+
+  /**
+   * Subclasses must implement validate(userAnswer).
+   * Returns: { isCorrect, scoreValue, canonicalAnswer, submittedAnswer }
+   */
+  validate(userAnswer) {
+    throw new Error('QuestionBase.validate() must be implemented by subclass');
+  }
+
+  /**
+   * Returns a prompt string suitable for pasting into an LLM.
+   * Subclasses should override for richer prompts.
+   */
+  llmPrompt() {
+    return [
+      'Topic: ' + (this._topicMeta.title || this.getDisplayTopic()),
+      '',
+      'Question:',
+      this.getPromptText(),
+      '',
+      'Please explain the concept being tested and why the correct answer is correct.'
+    ].join('\n');
+  }
+}
+</script>

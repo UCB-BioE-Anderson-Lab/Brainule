@@ -1,0 +1,13 @@
+<script>
+// event_logger.js — no-op event logger (v1 stub)
+
+'use strict';
+
+class NoOpEventLogger {
+  logQuestionPresented(payload) { /* no-op */ }
+  logAnswerSubmitted(payload)   { /* no-op */ }
+  logGeminiPromptCopied(payload){ /* no-op */ }
+}
+
+const EventLogger = new NoOpEventLogger();
+</script>

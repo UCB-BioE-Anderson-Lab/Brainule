@@ -1,0 +1,60 @@
+<script>
+// content_service.js — normalizes bootstrap data into runtime structures
+
+'use strict';
+
+const ContentService = {
+  /**
+   * Returns { topics, questionBank, error }
+   * topics: array of topic objects
+   * questionBank: Map<slug, QuestionBase[]>
+   */
+  load(bootstrapData) {
+    if (bootstrapData.error) {
+      return { topics: [], questionBank: new Map(), error: bootstrapData.error };
+    }
+
+    const topics = bootstrapData.topicsFlat;
+    const rawBank = bootstrapData.questionBank;
+
+    // Build a slug → topicMeta map for factory use
+    const topicIndex = {};
+    for (const t of topics) {
+      topicIndex[t.topic_slug] = t;
+    }
+
+    const questionBank = new Map();
+    const errors = [];
+
+    for (const slug of Object.keys(rawBank)) {
+      const topicMeta = topicIndex[slug] || { title: slug };
+      const rawQuestions = rawBank[slug];
+
+      if (!Array.isArray(rawQuestions)) {
+        errors.push('Question bank entry for "' + slug + '" is not an array.');
+        continue;
+      }
+
+      const built = [];
+      for (let i = 0; i < rawQuestions.length; i++) {
+        try {
+          built.push(QuestionFactory.create(rawQuestions[i], topicMeta));
+        } catch (e) {
+          errors.push('Skipped question ' + i + ' in "' + slug + '": ' + e.message);
+        }
+      }
+      questionBank.set(slug, built);
+    }
+
+    return {
+      topics,
+      questionBank,
+      error: errors.length ? errors.join('\n') : null
+    };
+  },
+
+  getQuestionsForTopic(questionBank, slug) {
+    return questionBank.get(slug) || [];
+  }
+};
+</script>

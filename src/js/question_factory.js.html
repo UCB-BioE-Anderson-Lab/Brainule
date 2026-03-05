@@ -1,0 +1,20 @@
+<script>
+// question_factory.js — instantiates question subclasses by question_format
+
+'use strict';
+
+const QuestionFactory = {
+  create(rawQuestion, topicMeta) {
+    if (!rawQuestion || typeof rawQuestion.question_format !== 'string') {
+      throw new Error('QuestionFactory: rawQuestion must have a question_format field');
+    }
+
+    switch (rawQuestion.question_format) {
+      case 'multiple_choice':
+        return new MultipleChoiceQuestion(rawQuestion, topicMeta);
+      default:
+        throw new Error('QuestionFactory: unsupported question_format "' + rawQuestion.question_format + '"');
+    }
+  }
+};
+</script>

@@ -1,0 +1,20 @@
+<script>
+// bootstrap.js — reads window.BRAINULE_BOOTSTRAP and validates it
+
+(function() {
+  'use strict';
+
+  var raw = window.BRAINULE_BOOTSTRAP;
+
+  if (!raw || !Array.isArray(raw.topicsFlat) || typeof raw.questionBank !== 'object') {
+    window.BRAINULE_DATA = { error: 'Bootstrap data is missing or malformed.' };
+    return;
+  }
+
+  window.BRAINULE_DATA = {
+    topicsFlat:   raw.topicsFlat,
+    questionBank: raw.questionBank,
+    error:        null
+  };
+})();
+</script>

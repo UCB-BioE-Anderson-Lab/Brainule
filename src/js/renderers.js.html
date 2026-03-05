@@ -1,0 +1,210 @@
+<script>
+// renderers.js — pure DOM-rendering functions, no state
+
+'use strict';
+
+const Renderers = {
+
+  // ── Text formatting ──────────────────────────────────────────
+
+  /**
+   * Converts question/explanation text to HTML.
+   * Handles:
+   *   <python>...</python>  → inline code or code block
+   *   <pre>...</pre>        → inline code (sequence literals)
+   *   Newlines              → preserved via white-space: pre-wrap on container
+   */
+  formatText(raw) {
+    if (!raw) return '';
+
+    // Escape HTML entities first
+    let s = raw
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Restore our custom tags after escaping
+    // <python>...</python> — multiline → code block, single line → inline
+    s = s.replace(/&lt;python&gt;([\s\S]*?)&lt;\/python&gt;/g, function(_, inner) {
+      const decoded = inner
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+      if (decoded.includes('\n')) {
+        return '<pre class="code-block">' + _escHtml(decoded) + '</pre>';
+      }
+      return '<code class="code-inline">' + _escHtml(decoded) + '</code>';
+    });
+
+    // <pre>...</pre> — always inline code for sequence literals
+    s = s.replace(/&lt;pre&gt;([\s\S]*?)&lt;\/pre&gt;/g, function(_, inner) {
+      const decoded = inner
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+      return '<code class="code-inline">' + _escHtml(decoded) + '</code>';
+    });
+
+    return s;
+  },
+
+  // ── Topic list ───────────────────────────────────────────────
+
+  renderTopicList(container, topics, activeSlug, onSelect) {
+    container.innerHTML = '<h2>Topics</h2>';
+    for (const t of topics) {
+      const btn = document.createElement('button');
+      btn.className = 'topic-btn' + (t.topic_slug === activeSlug ? ' active' : '');
+      btn.textContent = t.title;
+      btn.dataset.slug = t.topic_slug;
+      btn.addEventListener('click', function() { onSelect(t.topic_slug); });
+      container.appendChild(btn);
+    }
+  },
+
+  // ── Meta panel ───────────────────────────────────────────────
+
+  renderMeta(container, topic) {
+    if (!topic) {
+      container.innerHTML = '<p class="meta-empty">Select a topic to begin.</p>';
+      return;
+    }
+    const pathStr = Array.isArray(topic.path) ? topic.path.join(' › ') : '';
+    container.innerHTML =
+      '<div id="meta-title">' + _escHtml(topic.title) + '</div>' +
+      '<div id="meta-scope">'  + _escHtml(topic.scope || '') + '</div>' +
+      (pathStr ? '<div id="meta-path">' + _escHtml(pathStr) + '</div>' : '');
+  },
+
+  // ── Question panel ───────────────────────────────────────────
+
+  renderEmptyQuestion(container, message) {
+    container.innerHTML =
+      '<div id="q-controls"></div>' +
+      '<div class="state-empty">' + _escHtml(message || 'No questions available for this topic.') + '</div>';
+  },
+
+  renderError(container, message) {
+    container.innerHTML = '<div class="state-error">' + _escHtml(message) + '</div>';
+  },
+
+  renderQuestion(container, question, index, total, onChoiceClick, onPrev, onNext, onExpand, onGemini, isExpanded) {
+    const choices  = question.getChoices ? question.getChoices() : {};
+    const diffText = question.getDifficulty();
+
+    let html = '';
+
+    // Controls row
+    html += '<div id="q-controls">';
+    html += '<span id="q-progress">Question ' + (index + 1) + ' / ' + total + '</span>';
+    html += '<button class="ctrl-btn" id="btn-prev"' + (index === 0 ? ' disabled' : '') + '>← Prev</button>';
+    html += '<button class="ctrl-btn" id="btn-next"' + (index === total - 1 ? ' disabled' : '') + '>Next →</button>';
+    html += '<button id="btn-expand" title="Toggle expand">' + (isExpanded ? '⊡' : '⊞') + '</button>';
+    html += '</div>';
+
+    // Question card
+    html += '<div id="q-card">';
+    if (diffText) html += '<div id="q-difficulty">' + _escHtml(diffText) + '</div>';
+    html += '<div id="q-subtopic">' + _escHtml(question.getDisplayTopic()) + '</div>';
+    html += '<div id="q-text">' + Renderers.formatText(question.getPromptText()) + '</div>';
+
+    // Choices
+    html += '<div id="q-choices">';
+    for (const [key, text] of Object.entries(choices)) {
+      html += '<button class="choice-btn" data-key="' + _escAttr(key) + '">' +
+              '<span class="choice-key">' + _escHtml(key) + '.</span>' +
+              '<span class="choice-text">' + Renderers.formatText(text) + '</span>' +
+              '</button>';
+    }
+    html += '</div>';
+
+    // Explanation (hidden until answer submitted)
+    html += '<div id="q-explanation">';
+    html += '<div id="q-result-label"></div>';
+    html += '<div id="q-answer-line"></div>';
+    html += '<div id="q-explanation-text"></div>';
+    html += '</div>';
+
+    // Gemini button
+    html += '<button id="btn-gemini">Ask Gemini</button>';
+    html += '<span id="gemini-feedback">Copied!</span>';
+
+    html += '</div>'; // q-card
+
+    container.innerHTML = html;
+
+    // Wire events
+    document.getElementById('btn-prev').addEventListener('click', onPrev);
+    document.getElementById('btn-next').addEventListener('click', onNext);
+    document.getElementById('btn-expand').addEventListener('click', onExpand);
+    document.getElementById('btn-gemini').addEventListener('click', onGemini);
+
+    document.querySelectorAll('.choice-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        onChoiceClick(btn.dataset.key);
+      });
+    });
+  },
+
+  // Called after answer submission to reveal result
+  revealResult(validationResult, choices) {
+    const { isCorrect, canonicalAnswer, submittedAnswer } = validationResult;
+
+    // Mark buttons
+    document.querySelectorAll('.choice-btn').forEach(function(btn) {
+      btn.disabled = true;
+      const k = btn.dataset.key;
+      if (k === canonicalAnswer) btn.classList.add('correct');
+      else if (k === submittedAnswer && !isCorrect) btn.classList.add('incorrect');
+    });
+
+    // Result label
+    const label = document.getElementById('q-result-label');
+    if (label) {
+      label.textContent = isCorrect ? 'Correct!' : 'Incorrect';
+      label.className   = isCorrect ? 'correct' : 'incorrect';
+    }
+
+    // Answer line
+    const answerLine = document.getElementById('q-answer-line');
+    if (answerLine && choices) {
+      const answerText = choices[canonicalAnswer] || '';
+      answerLine.textContent = 'Answer: ' + canonicalAnswer + '. ' + answerText;
+    }
+
+    // Show explanation
+    const expEl = document.getElementById('q-explanation');
+    if (expEl) expEl.classList.add('visible');
+
+    // Show Gemini button
+    const geminiBtn = document.getElementById('btn-gemini');
+    if (geminiBtn) geminiBtn.classList.add('visible');
+  },
+
+  renderExplanationText(text) {
+    const el = document.getElementById('q-explanation-text');
+    if (el) el.innerHTML = Renderers.formatText(text);
+  },
+
+  showGeminiFeedback() {
+    const fb = document.getElementById('gemini-feedback');
+    if (!fb) return;
+    fb.style.opacity = '1';
+    setTimeout(function() { fb.style.opacity = '0'; }, 1800);
+  }
+};
+
+// ── Private helpers ──────────────────────────────────────────
+
+function _escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function _escAttr(s) {
+  return String(s).replace(/"/g, '&quot;');
+}
+</script>

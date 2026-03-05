@@ -1,0 +1,64 @@
+<script>
+// multiple_choice.js — MultipleChoiceQuestion subclass
+
+'use strict';
+
+class MultipleChoiceQuestion extends QuestionBase {
+  constructor(rawQuestion, topicMeta) {
+    super(rawQuestion, topicMeta);
+
+    if (!rawQuestion.choices || typeof rawQuestion.choices !== 'object') {
+      throw new Error('MultipleChoiceQuestion: missing choices');
+    }
+    if (!rawQuestion.answer) {
+      throw new Error('MultipleChoiceQuestion: missing answer');
+    }
+
+    // Normalize: preserve insertion order, trim keys and values
+    this._choices = {};
+    for (const key of Object.keys(rawQuestion.choices)) {
+      this._choices[key.trim()] = rawQuestion.choices[key];
+    }
+    this._canonicalAnswer = rawQuestion.answer.trim();
+  }
+
+  getChoices() {
+    return this._choices;
+  }
+
+  validate(userAnswer) {
+    const submitted  = (userAnswer || '').trim();
+    const canonical  = this._canonicalAnswer;
+    const isCorrect  = submitted === canonical;
+    return {
+      isCorrect,
+      scoreValue:       isCorrect ? 1 : 0,
+      canonicalAnswer:  canonical,
+      submittedAnswer:  submitted
+    };
+  }
+
+  llmPrompt() {
+    const lines = [
+      'Topic: ' + (this._topicMeta.title || this.getDisplayTopic()),
+      'Subtopic: ' + this.getDisplayTopic(),
+      'Difficulty: ' + this.getDifficulty(),
+      '',
+      'Question:',
+      this.getPromptText(),
+      '',
+      'Choices:'
+    ];
+
+    for (const [key, text] of Object.entries(this._choices)) {
+      lines.push('  ' + key + '. ' + text);
+    }
+
+    lines.push('', 'Correct answer: ' + this._canonicalAnswer);
+    lines.push('', 'Explanation:', this.getExplanation());
+    lines.push('', 'Please explain why this answer is correct and why each distractor is wrong.');
+
+    return lines.join('\n');
+  }
+}
+</script>
