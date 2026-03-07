@@ -69,7 +69,7 @@ const Renderers = {
       container.innerHTML = '<p class="meta-empty">Select a topic to begin.</p>';
       return;
     }
-    const pathStr = Array.isArray(topic.path) ? topic.path.join(' › ') : '';
+    const pathStr = Array.isArray(topic.path) ? topic.path.filter(Boolean).join(' > ') : '';
     container.innerHTML =
       '<div id="meta-title">' + _escHtml(topic.title) + '</div>' +
       '<div id="meta-scope">'  + _escHtml(topic.scope || '') + '</div>' +
@@ -104,7 +104,10 @@ const Renderers = {
 
     // Question card
     html += '<div id="q-card">';
-    if (diffText) html += '<div id="q-difficulty">' + _escHtml(diffText) + '</div>';
+    if (diffText) {
+      var diffClass = 'badge-difficulty badge-' + diffText.toLowerCase().replace(/[^a-z]/g, '');
+      html += '<div id="q-difficulty"><span class="' + diffClass + '">' + _escHtml(diffText) + '</span></div>';
+    }
     html += '<div id="q-subtopic">' + _escHtml(question.getDisplayTopic()) + '</div>';
     html += '<div id="q-text">' + Renderers.formatText(question.getPromptText()) + '</div>';
 
@@ -112,7 +115,7 @@ const Renderers = {
     html += '<div id="q-choices">';
     for (const [key, text] of Object.entries(choices)) {
       html += '<button class="choice-btn" data-key="' + _escAttr(key) + '">' +
-              '<span class="choice-key">' + _escHtml(key) + '.</span>' +
+              '<span class="choice-key">' + _escHtml(key) + '</span>' +
               '<span class="choice-text">' + Renderers.formatText(text) + '</span>' +
               '</button>';
     }
@@ -125,9 +128,9 @@ const Renderers = {
     html += '<div id="q-explanation-text"></div>';
     html += '</div>';
 
-    // Gemini button
-    html += '<button id="btn-gemini">Ask Gemini</button>';
-    html += '<span id="gemini-feedback">Copied!</span>';
+    // Copy-for-AI button
+    html += '<button id="btn-gemini">📋 Copy for AI Help</button>';
+    html += '<span id="gemini-feedback">Copied! Paste into your AI assistant.</span>';
 
     html += '</div>'; // q-card
 

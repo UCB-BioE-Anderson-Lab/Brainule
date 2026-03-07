@@ -1,4 +1,4 @@
-// Code.gs — server-side entry point for Brainule
+// Code.gs — server-side entry point for Brainule  v0.11
 
 // ── Configuration ─────────────────────────────────────────────────────────
 
@@ -49,8 +49,12 @@ function errorPage_(message) {
  */
 function logEvent(payload) {
   try {
+    Logger.log('logEvent start  course=%s  topic=%s  question=%s',
+               payload.courseSlug, payload.topicSlug, payload.questionSlug);
     const ss    = getOrCreateResponsesSheet_(payload.courseSlug);
+    Logger.log('logEvent: responses sheet ready');
     const sheet = getOrCreateTopicTab_(ss, payload.topicSlug);
+    Logger.log('logEvent: topic tab ready');
     sheet.appendRow([
       new Date(),                                          // timestamp (server clock)
       payload.email             || '',
@@ -61,12 +65,34 @@ function logEvent(payload) {
       payload.answerGiven       || '',
       payload.correctAnswer     || '',
       payload.isCorrect         === true,
-      payload.geminiClicked     === true,
+      false,                                               // gemini_clicked — updated later if needed
       payload.timeToAnswerS     != null ? payload.timeToAnswerS : '',
       payload.questionIndex     != null ? payload.questionIndex : ''
     ]);
+    const rowNumber = sheet.getLastRow();
+    Logger.log('logEvent: row appended OK at row %s', rowNumber);
+    return rowNumber;   // returned to client via withSuccessHandler
   } catch (e) {
+    Logger.log('logEvent ERROR: ' + e.message);
     console.error('Brainule logEvent failed: ' + e.message);
+    return null;
+  }
+}
+
+/**
+ * Updates the gemini_clicked cell for a previously logged row.
+ * Called from the client when the "Copy for AI Help" button is pressed after answering.
+ */
+function updateGeminiClicked(payload) {
+  try {
+    const ss    = getOrCreateResponsesSheet_(payload.courseSlug);
+    const sheet = getOrCreateTopicTab_(ss, payload.topicSlug);
+    // Column 10 = gemini_clicked (1-indexed; col 1 = timestamp)
+    sheet.getRange(payload.rowNumber, 10).setValue(true);
+    Logger.log('updateGeminiClicked: row %s updated', payload.rowNumber);
+  } catch (e) {
+    Logger.log('updateGeminiClicked ERROR: ' + e.message);
+    console.error('Brainule updateGeminiClicked failed: ' + e.message);
   }
 }
 

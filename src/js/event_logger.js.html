@@ -5,16 +5,16 @@
 
 class SheetsEventLogger {
   constructor(courseSlug, userEmail) {
-    this.courseSlug     = courseSlug;
-    this.userEmail      = userEmail;
-    this.sessionId      = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    this._presentedAt   = null;
-    this._geminiClicked = false;
+    this.courseSlug   = courseSlug;
+    this.userEmail    = userEmail;
+    this.sessionId    = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    this._presentedAt = null;
+    this._lastRowInfo = null;   // { rowNumber, courseSlug, topicSlug } — set after logEvent succeeds
   }
 
   logQuestionPresented(payload) {
-    this._presentedAt   = Date.now();
-    this._geminiClicked = false;
+    this._presentedAt = Date.now();
+    this._lastRowInfo = null;   // reset so a stale row is never updated for the new question
   }
 
   logAnswerSubmitted(payload) {
@@ -22,10 +22,23 @@ class SheetsEventLogger {
       ? Math.round((Date.now() - this._presentedAt) / 1000)
       : null;
 
+    _brainuleLog('firing logEvent for ' + payload.questionSlug +
+                 '  course=' + this.courseSlug + '  email=' + this.userEmail);
+
     var self = this;
     google.script.run
+      .withSuccessHandler(function(rowNumber) {
+        _brainuleLog('logEvent succeeded, row=' + rowNumber);
+        if (rowNumber) {
+          self._lastRowInfo = {
+            rowNumber:  rowNumber,
+            courseSlug: self.courseSlug,
+            topicSlug:  payload.topicSlug
+          };
+        }
+      })
       .withFailureHandler(function(err) {
-        console.warn('Brainule: logEvent failed —', err);
+        _brainuleLog('logEvent FAILED: ' + JSON.stringify(err));
       })
       .logEvent({
         email:          self.userEmail,
@@ -36,15 +49,38 @@ class SheetsEventLogger {
         answerGiven:    payload.submittedAnswer,
         correctAnswer:  payload.canonicalAnswer,
         isCorrect:      payload.isCorrect,
-        geminiClicked:  self._geminiClicked,
         timeToAnswerS:  timeToAnswerS,
         questionIndex:  payload.questionIndex
       });
   }
 
   logGeminiPromptCopied(payload) {
-    this._geminiClicked = true;
+    if (!this._lastRowInfo) {
+      _brainuleLog('logGeminiPromptCopied: no row info yet — skipping update');
+      return;
+    }
+    var info = this._lastRowInfo;
+    _brainuleLog('updateGeminiClicked for row=' + info.rowNumber);
+    google.script.run
+      .withSuccessHandler(function() {
+        _brainuleLog('updateGeminiClicked succeeded');
+      })
+      .withFailureHandler(function(err) {
+        _brainuleLog('updateGeminiClicked FAILED: ' + JSON.stringify(err));
+      })
+      .updateGeminiClicked({
+        rowNumber:  info.rowNumber,
+        courseSlug: info.courseSlug,
+        topicSlug:  info.topicSlug
+      });
   }
+}
+
+// Log to whichever console is reachable (top frame or iframe)
+function _brainuleLog(msg) {
+  var c = 'Brainule: ' + msg;
+  try { window.top.console.warn(c); } catch(e) {}
+  try { console.warn(c); } catch(e) {}
 }
 
 var _data = window.BRAINULE_DATA || {};
