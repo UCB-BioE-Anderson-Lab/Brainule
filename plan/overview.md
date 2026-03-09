@@ -38,7 +38,7 @@ topic is taught — without routine instructor intervention.
 | Web framework | Express |
 | Schema validation | zod |
 | Package manager | pnpm workspaces (monorepo) |
-| LLM | Anthropic Claude (primary), with provider abstraction |
+| LLM | OpenAI GPT-4o (primary), Google Gemini (alternative), provider-agnostic abstraction |
 | Storage (initial) | In-memory + JSON files (dev), Google Sheets (prod) |
 | Storage (later) | Postgres on Cloud Run |
 | Deploy | Google Cloud Run via Docker |
