@@ -1,0 +1,19 @@
+{
+  "name": "@brainule/llm",
+  "version": "2.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@brainule/shared": "workspace:*",
+    "openai": "^4.47.0",
+    "@google/generative-ai": "^0.15.0"
+  },
+  "devDependencies": {
+    "typescript": "*"
+  }
+}
