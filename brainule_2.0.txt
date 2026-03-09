@@ -1,0 +1,1102 @@
+
+
+Adaptive Agentic STEM Tutor Platform
+Detailed Product and Technical Specification
+
+1. Purpose
+
+Build a fully automated AI tutoring platform for STEM subjects, primarily high school through university level. The system teaches within instructor-defined curriculum boundaries, generates lessons dynamically with LLMs, assesses mastery using randomized unseen quiz items, adapts remediation based on failures, and improves over time through experimentation and analysis.
+
+Primary goals:
+- Maximize student success on topic quizzes.
+- Minimize the number of wrong answers en route to mastery.
+- Minimize frustrating, extended tutoring sessions.
+- Keep all instruction inside the approved scope of the course.
+- Evolve pedagogy automatically without requiring routine instructor intervention.
+
+The instructor defines what may be taught. The system learns how to teach it.
+
+2. Product Principles
+
+2.1 Curriculum-bounded generation
+All lesson content must remain inside an approved course boundary. The root course defines the concept graph, the knowledge corpus, the leaf topics, and the assessment banks. The tutor may rephrase, reorganize, scaffold, and generate new examples and lessons, but only from the approved content universe.
+
+2.2 Assessment separation
+The tutor does not know future quiz questions. After a student fails a question, the tutor may receive the failed question, the student response, and grading rationale in order to diagnose the misunderstanding and prepare the student for a different future question in the same leaf-topic scope.
+
+2.3 Mastery-based progression
+Progress is based on mastery of leaf topics, not simply on lesson completion. A student advances after answering at least one valid question correctly for each leaf topic. The system may later strengthen this rule, but this is the current baseline.
+
+2.4 Adaptive teaching
+The system explores alternative lesson styles, tones, lengths, example densities, visualization usage, and other teaching parameters. It continuously measures what works and shifts toward more effective strategies.
+
+2.5 Fully automated tutoring
+Instructors author the root course and define the allowed knowledge boundary. The lesson layer is generated and improved automatically. Instructor intervention should trend toward zero after authoring, aside from occasional root-course refinement.
+
+2.6 Multi-agent operation
+The system is implemented as multiple cooperating agents and services with clear contracts, not as one monolithic prompt.
+
+3. Target Use
+
+Subject domain:
+- STEM
+
+Learner level:
+- High school and above
+
+Tutoring model:
+- Fully automated
+
+Expected scale:
+- Initial testing on tens of students
+- Eventual deployment to tens of thousands or more
+
+Interface model:
+- Left panel: topic list and progress
+- Center panel: lesson and topic conversation
+- Right panel: quiz panel with next-question button
+
+Students may request additional quiz questions on a subtopic from the quiz panel.
+
+4. High-Level System Behavior
+
+For each leaf topic:
+1. The system selects a teaching policy.
+2. The tutor agent retrieves approved content for the topic.
+3. The tutor agent generates a lesson under the selected parameters.
+4. The student reads the lesson and may ask topic-scoped questions.
+5. The assessment agent selects a random unseen or low-repetition question from the topic bank.
+6. The student answers.
+7. The grading pipeline evaluates the answer.
+8. If correct, the topic is marked mastered.
+9. If incorrect, the tutor receives the failed question and error evidence.
+10. The tutor generates remediation aimed at the underlying misunderstanding.
+11. The assessment agent serves a different question from the same leaf-topic scope.
+12. The cycle continues until mastery.
+
+5. System Scope
+
+In scope:
+- Instructor-authored root course definition
+- Curriculum concept graph
+- Approved knowledge corpus, including textbook-derived content
+- Randomized per-topic assessment banks
+- Dynamic LLM lesson generation
+- Dynamic LLM remediation generation
+- Student-topic conversation threads
+- Multiple question types and visualization guidance
+- Logging, analysis, and experimentation
+- Multiple LLM providers behind an abstraction layer
+- TypeScript implementation portable across Node and Apps Script
+
+Out of scope for initial version:
+- Strong security review layer beyond prompt/topic restriction
+- Human instructor intervention workflows
+- Open-ended unrestricted off-topic assistance
+- Heavy synchronous multimedia generation
+- Manual pedagogical approvals for each new lesson variant
+
+6. Course Model
+
+The course must be modeled as a directed concept graph with hierarchical organization. A linear chapter list is not sufficient.
+
+Recommended hierarchy:
+- Course
+- Module
+- Unit
+- Topic
+- Leaf Topic
+
+Only leaf topics are directly assessed for mastery.
+
+A leaf topic should be small enough that a student can receive focused instruction and be assessed with a coherent question bank.
+
+7. Root Course Specification
+
+The root course is the hard boundary for the system. It defines:
+- What topics exist
+- The prerequisite structure
+- Which knowledge artifacts are approved
+- Which question banks belong to which leaf topics
+- Which misconceptions and learning objectives are associated with each topic
+- Which visualization guides and question types are supported
+
+The root course should be human-authored and machine-validated.
+
+8. Recommended Course Content Structure
+
+Each course should contain:
+- Course metadata
+- Concept graph
+- Topic specifications
+- Leaf topic specifications
+- Knowledge corpus metadata and raw content references
+- Misconception library
+- Assessment banks
+- Visualization guides
+- Optional lesson policy defaults
+
+Recommended file layout inside a course package:
+- course.yaml
+- modules/*.yaml
+- topics/*.yaml
+- leaf-topics/*.yaml
+- misconceptions/*.yaml
+- question-banks/*.json
+- corpus/*.md
+- corpus-manifest.yaml
+- visualization-guides/*.yaml
+
+9. Course Schema Design
+
+9.1 CourseMetadata
+Fields:
+- courseId: string
+- title: string
+- subject: string
+- levelRange: string
+- version: string
+- authors: string[]
+- description: string
+- prerequisites: string[]
+
+9.2 Module
+Fields:
+- moduleId: string
+- title: string
+- description: string
+- unitIds: string[]
+
+9.3 Unit
+Fields:
+- unitId: string
+- moduleId: string
+- title: string
+- description: string
+- topicIds: string[]
+
+9.4 Topic
+Fields:
+- topicId: string
+- unitId: string
+- title: string
+- description: string
+- leafTopicIds: string[]
+- prerequisiteTopicIds: string[]
+
+9.5 LeafTopic
+Fields:
+- leafTopicId: string
+- parentTopicId: string
+- title: string
+- description: string
+- learningObjectiveIds: string[]
+- prerequisiteLeafTopicIds: string[]
+- misconceptionIds: string[]
+- allowedKnowledgeTags: string[]
+- assessmentBankIds: string[]
+- visualizationGuideIds: string[]
+- defaultDifficultyExpectation: string
+- active: boolean
+
+9.6 LearningObjective
+Fields:
+- learningObjectiveId: string
+- leafTopicId: string
+- statement: string
+- skillType: string
+
+9.7 Misconception
+Fields:
+- misconceptionId: string
+- leafTopicId: string
+- label: string
+- description: string
+- exampleWrongReasoning: string
+- correctionStrategy: string
+
+9.8 CorpusDocument
+Fields:
+- docId: string
+- title: string
+- source: string
+- topicTags: string[]
+- leafTopicTags: string[]
+- contentPath: string
+- chunkingStrategy: string
+- difficulty: string
+- visualizationHints: string[]
+
+9.9 VisualizationGuide
+Fields:
+- visualizationGuideId: string
+- leafTopicId: string
+- label: string
+- guidance: string
+- preferredQuestionTypes: string[]
+
+9.10 AssessmentBank
+Fields:
+- assessmentBankId: string
+- leafTopicId: string
+- questionIds: string[]
+- generationPolicy: string
+
+9.11 AssessmentItem
+Fields:
+- questionId: string
+- leafTopicId: string
+- questionType: string
+- difficulty: string
+- prompt: string
+- answerKey: string | object
+- rubric: string | object
+- visualizationGuideId?: string
+- tags: string[]
+- active: boolean
+
+9.12 ParametricQuestionTemplate
+Fields:
+- templateId: string
+- leafTopicId: string
+- questionType: string
+- stemTemplate: string
+- parameters: object
+- generationRules: string
+- answerFunctionRef: string
+- rubricTemplate: string | object
+
+10. Knowledge Corpus Model
+
+The knowledge corpus is the approved raw content universe that the LLM may draw from. It may include:
+- textbook excerpts
+- derivations
+- solved examples
+- worked code examples
+- diagrams
+- formula sheets
+- proofs
+- explanatory passages
+
+The system should chunk and tag this corpus for retrieval. The tutor may synthesize new lessons from it, but must not pull facts from outside it unless explicitly authorized in a future version.
+
+Recommended corpus strategy:
+- Store documents as markdown files where possible.
+- Maintain a manifest of document metadata.
+- Precompute chunks or use deterministic chunking at runtime.
+- Tag chunks by module, topic, leaf topic, difficulty, and document type.
+
+11. Assessment Model
+
+Each leaf topic has an associated bank of quiz questions. Questions are randomly selected on a per-topic basis.
+
+Supported question types should be extensible and each may be paired with visualization guidance.
+
+Initial supported question types may include:
+- multiple_choice
+- numeric
+- symbolic
+- short_text
+- conceptual_explanation
+- diagram_interpretation
+- code_execution
+- graph_interpretation
+- table_interpretation
+
+Assessment expectations and difficulty control should be part of the instructions given to the LLM or grading pipeline administering training, but the bank itself remains the hard topic boundary.
+
+12. Mastery Policy
+
+Current mastery rule:
+- A student has mastered a leaf topic when they correctly answer at least one question for that leaf topic.
+
+This is the required baseline behavior.
+
+The system design should keep the mastery policy configurable so it can later support stronger criteria without structural redesign.
+
+Recommended config shape:
+- policyId
+- type
+- minimumCorrect
+- requiredQuestionTypes
+- requiredDelayCheck
+
+13. Lesson Generation Philosophy
+
+Lessons are not static authored pages. Lessons are dynamic outputs generated by an LLM using:
+- the leaf topic definition
+- the approved retrieved corpus
+- current selected teaching parameters
+- student state
+- recent failures and misconceptions
+- historical performance notes
+
+The lesson should adapt in style, tone, length, and structure based on experimentation and student response.
+
+The LLM should have latitude to generate:
+- explanations
+- examples
+- analogies
+- structured walkthroughs
+- short guided questions
+- visual framing suggestions
+
+It must remain inside the leaf topic scope and the approved corpus.
+
+14. Teaching Parameters
+
+The experimentation system should choose from a bounded variable space of teaching parameters. Initial parameter family examples:
+- lessonStyle: definition_first | example_first | analogy_first | misconception_first | procedural_first
+- explanationDepth: short | medium | deep
+- tone: neutral | encouraging | direct | energetic
+- exampleCount: integer range
+- socraticRatio: 0.0 to 1.0
+- visualizationRatio: 0.0 to 1.0
+- stepGranularity: low | medium | high
+- prerequisiteRefresh: none | light | moderate | heavy
+
+These are not directly shown to students. They are internal policy variables used to generate lessons.
+
+15. Student Interaction Model
+
+Each leaf topic has an associated conversation thread in the lesson panel. The thread contains:
+- generated lesson content
+- student questions
+- tutor responses
+
+The thread itself is not the object of experimentation. The evolving portion is the lesson-generation strategy and remediation strategy.
+
+The system should allow the student to ask topic-scoped questions within the lesson panel. Off-topic behavior is handled by instruction, not by a heavy security layer in the first version.
+
+16. Student State Model
+
+The system must maintain student-specific state.
+
+Recommended StudentState fields:
+- studentId: string
+- activeCourseId: string
+- topicStates: StudentTopicState[]
+- globalInteractionProfile: StudentInteractionProfile
+- createdAt: string
+- updatedAt: string
+
+Recommended StudentTopicState fields:
+- studentId: string
+- leafTopicId: string
+- mastered: boolean
+- masteryScore: number
+- attemptCount: number
+- correctCount: number
+- incorrectCount: number
+- recentQuestionIds: string[]
+- recentMisconceptionIds: string[]
+- frustrationScore: number
+- averageResponseLatencyMs: number
+- lastLessonPolicyId?: string
+- lastSeenAt?: string
+
+Recommended StudentInteractionProfile fields:
+- preferredStyleIndicators: Record<string, number>
+- preferredToneIndicators: Record<string, number>
+- sentimentTrend: number
+- persistenceTrend: number
+- verbosityTolerance: number
+- visualizationAffinity: number
+
+17. Sentiment and Feedback Model
+
+The system may use sentiment analysis and explicit check-ins as part of adaptive teaching.
+
+Recommended FeedbackEvent fields:
+- eventId: string
+- studentId: string
+- leafTopicId: string
+- type: sentiment | self_report | frustration_signal | preference_signal
+- value: string | number | object
+- capturedAt: string
+
+This feedback is used by the analysis agent and experimentation system to help choose teaching style.
+
+18. Runtime Agent Architecture
+
+Recommended agents/services:
+- TutorAgent
+- AssessmentAgent
+- GradingAgent
+- FailureAnalysisAgent
+- ExperimentAgent
+- AnalysisAgent
+- CorpusRetrievalAgent
+- StudentModelService
+- PromptRepository
+- LlmGateway
+
+These may be packaged as services with contracts rather than independent autonomous processes.
+
+19. TutorAgent Specification
+
+Responsibilities:
+- Generate initial lesson for a leaf topic
+- Answer topic-scoped student questions
+- Generate remediation after failed assessment
+- Maintain instructional coherence within the topic thread
+
+Inputs:
+- LeafTopic
+- Retrieved corpus chunks
+- Teaching parameters
+- StudentTopicState
+- StudentInteractionProfile
+- Prior failure evidence if any
+
+Outputs:
+- GeneratedLesson
+- TutorResponse
+- RemediationLesson
+
+TutorAgent must not know future assessment items.
+
+20. AssessmentAgent Specification
+
+Responsibilities:
+- Select quiz questions for a leaf topic
+- Avoid immediate repeats where possible
+- Honor question-type and difficulty constraints
+- Serve new questions when student clicks next
+
+Inputs:
+- leafTopicId
+- StudentTopicState
+- AssessmentBank
+- optional question-type constraints
+
+Outputs:
+- AssessmentItem
+
+21. GradingAgent Specification
+
+Responsibilities:
+- Grade student answers according to question type
+- Return correctness, rubric result, and diagnostic evidence
+
+Inputs:
+- AssessmentItem
+- Student answer
+- Optional grading prompt or deterministic evaluator
+
+Outputs:
+- GradingResult
+
+Recommended GradingResult fields:
+- gradingResultId: string
+- questionId: string
+- correct: boolean
+- score: number
+- rubricResult: object
+- errorCategory?: string
+- graderConfidence: number
+- gradingNotes: string
+
+22. FailureAnalysisAgent Specification
+
+Responsibilities:
+- Turn a failed quiz result into a structured diagnosis for the tutor
+
+Inputs:
+- AssessmentItem
+- Student answer
+- GradingResult
+- LeafTopic
+n- Misconceptions for topic
+
+Outputs:
+- FailureAnalysis
+
+Recommended FailureAnalysis fields:
+- failureAnalysisId: string
+- studentId: string
+- leafTopicId: string
+- likelyMisconceptionIds: string[]
+- failureType: conceptual | procedural | careless | language | unknown
+- summary: string
+- remediationHints: string[]
+
+23. ExperimentAgent Specification
+
+Responsibilities:
+- Choose teaching parameter assignments
+- Manage exploration versus exploitation
+- Track policy effectiveness
+
+Inputs:
+- student state
+- topic state
+- course version
+- available policy space
+- historical performance summary
+
+Outputs:
+- LessonPolicyAssignment
+
+Recommended LessonPolicyAssignment fields:
+- policyAssignmentId: string
+- leafTopicId: string
+- studentId: string
+- lessonStyle: string
+- explanationDepth: string
+- tone: string
+- exampleCount: number
+- socraticRatio: number
+- visualizationRatio: number
+- prerequisiteRefresh: string
+- assignedAt: string
+
+24. AnalysisAgent Specification
+
+Responsibilities:
+- Analyze completed interactions
+- Update policy statistics
+- Update student interaction profile
+- Generate notes on what happened
+
+Inputs:
+- event logs
+- grading results
+- feedback events
+- policy assignments
+
+Outputs:
+- PolicyPerformanceUpdate
+- StudentProfileUpdate
+- SessionSummaryNote
+
+25. CorpusRetrievalAgent Specification
+
+Responsibilities:
+- Retrieve only approved topic-relevant corpus content
+- Build context packs for lesson generation
+
+Inputs:
+- leafTopicId
+- prerequisite topic ids
+- allowed knowledge tags
+- optional lesson mode
+
+Outputs:
+- RetrievedContentPack
+
+Recommended RetrievedContentPack fields:
+- packId: string
+- leafTopicId: string
+- chunks: RetrievedChunk[]
+
+Recommended RetrievedChunk fields:
+- chunkId: string
+- docId: string
+- content: string
+- tags: string[]
+- score: number
+
+26. LLM Abstraction Requirements
+
+The LLM calling layer must be trivial to swap.
+
+Define a provider-agnostic LLM interface in TypeScript.
+
+Recommended interface:
+
+export interface LlmRequest {
+  systemPrompt: string;
+  userPrompt: string;
+  model?: string;
+  temperature?: number;
+  responseFormat?: 'text' | 'json';
+  metadata?: Record<string, unknown>;
+}
+
+export interface LlmResponse {
+  text: string;
+  structured?: unknown;
+  raw?: unknown;
+  provider: string;
+  model: string;
+  requestId?: string;
+}
+
+export interface LlmClient {
+  generate(request: LlmRequest): Promise<LlmResponse>;
+}
+
+Adapters should exist for:
+- OpenAI
+- Anthropic
+- Gemini
+- Mock LLM
+- Any future provider
+
+The core tutoring logic must depend only on LlmClient, never on provider-specific SDKs.
+
+27. Prompt Management Requirements
+
+All LLM instructions must be stored in external text or markdown files for ease of human editing.
+
+Recommended prompt folders:
+- prompts/tutor/lesson.md
+- prompts/tutor/remediation.md
+- prompts/tutor/qa.md
+- prompts/grading/grade.md
+- prompts/grading/failure-analysis.md
+- prompts/analysis/session-review.md
+- prompts/experiment/policy-selection.md
+
+Prompt files must support template variables.
+
+Recommended PromptRepository interface:
+
+export interface PromptRepository {
+  getPrompt(promptName: string): Promise<string>;
+}
+
+The system should log prompt file names and prompt hashes for every LLM-mediated output.
+
+28. Runtime Portability Requirements
+
+The codebase should be implemented in JavaScript ecosystem tooling, preferably TypeScript, in a way that supports:
+- Node.js server runtime
+- Google Apps Script integration/runtime where feasible
+
+The core business logic must be runtime-agnostic.
+
+Core code must avoid direct dependencies on:
+- Express-only APIs
+- Apps Script globals
+- provider-specific SDK assumptions
+- environment-specific filesystem assumptions
+
+Adapters should bridge runtime-specific concerns.
+
+29. Folder Structure Specification
+
+Recommended monorepo structure:
+
+/apps
+  /node-server
+    /src
+      /api
+      /workers
+      /adapters
+      app.ts
+  /apps-script
+    /src
+      Code.ts
+      /adapters
+/packages
+  /core
+    /src
+      /agents
+      /domain
+      /orchestration
+      /policies
+      /schemas
+      /services
+      /types
+      index.ts
+  /llm
+    /src
+      /clients
+        openai.ts
+        anthropic.ts
+        gemini.ts
+        mock.ts
+      index.ts
+  /prompts
+    tutor/
+    grading/
+    analysis/
+    experiment/
+  /retrieval
+    /src
+      index.ts
+  /storage
+    /src
+      /memory
+      /postgres
+      /sheets
+      index.ts
+  /shared
+    /src
+      /config
+      /logging
+      /utils
+/course
+  course.yaml
+  /modules
+  /units
+  /topics
+  /leaf-topics
+  /misconceptions
+  /question-banks
+  /corpus
+  corpus-manifest.yaml
+  /visualization-guides
+
+30. TypeScript Schema Requirements
+
+The system should define strong TypeScript types and runtime validation for:
+- course schemas
+- question schemas
+- student state schemas
+- policy assignment schemas
+- grading result schemas
+- event log schemas
+
+Recommended validation library:
+- zod or equivalent
+
+Representative interfaces:
+
+export interface CourseMetadata {
+  courseId: string;
+  title: string;
+  subject: string;
+  levelRange: string;
+  version: string;
+  authors: string[];
+  description: string;
+  prerequisites: string[];
+}
+
+export interface LeafTopic {
+  leafTopicId: string;
+  parentTopicId: string;
+  title: string;
+  description: string;
+  learningObjectiveIds: string[];
+  prerequisiteLeafTopicIds: string[];
+  misconceptionIds: string[];
+  allowedKnowledgeTags: string[];
+  assessmentBankIds: string[];
+  visualizationGuideIds: string[];
+  defaultDifficultyExpectation: string;
+  active: boolean;
+}
+
+export interface AssessmentItem {
+  questionId: string;
+  leafTopicId: string;
+  questionType: string;
+  difficulty: string;
+  prompt: string;
+  answerKey: unknown;
+  rubric: unknown;
+  visualizationGuideId?: string;
+  tags: string[];
+  active: boolean;
+}
+
+export interface StudentTopicState {
+  studentId: string;
+  leafTopicId: string;
+  mastered: boolean;
+  masteryScore: number;
+  attemptCount: number;
+  correctCount: number;
+  incorrectCount: number;
+  recentQuestionIds: string[];
+  recentMisconceptionIds: string[];
+  frustrationScore: number;
+  averageResponseLatencyMs: number;
+  lastLessonPolicyId?: string;
+  lastSeenAt?: string;
+}
+
+31. Storage Abstraction Requirements
+
+Core logic should depend on repository interfaces rather than concrete databases.
+
+Recommended repositories:
+- CourseRepository
+- QuestionRepository
+- StudentStateRepository
+- EventLogRepository
+- PromptRepository
+- PolicyRepository
+- RetrievalRepository
+
+Representative interface examples:
+
+export interface QuestionRepository {
+  getRandomQuestion(input: {
+    leafTopicId: string;
+    excludeQuestionIds?: string[];
+    allowedTypes?: string[];
+  }): Promise<AssessmentItem>;
+}
+
+export interface StudentStateRepository {
+  getStudentState(studentId: string): Promise<StudentState | null>;
+  saveStudentState(state: StudentState): Promise<void>;
+}
+
+32. Orchestration Flow Specification
+
+The tutoring orchestrator controls the main loop.
+
+Representative flow:
+1. Load student state.
+2. Determine current leaf topic.
+3. Request policy assignment from ExperimentAgent.
+4. Retrieve approved content for leaf topic.
+5. Load lesson prompt template.
+6. Call TutorAgent to generate lesson.
+7. Present lesson in center panel.
+8. Student optionally asks questions in lesson thread.
+9. Student opens or advances quiz panel.
+10. AssessmentAgent selects question.
+11. Student answers.
+12. GradingAgent grades.
+13. If correct, mark topic mastered.
+14. If incorrect, call FailureAnalysisAgent.
+15. Call TutorAgent with remediation prompt and failure evidence.
+16. Present remediation.
+17. Repeat with a different question.
+18. Log all events.
+19. Call AnalysisAgent after each cycle.
+
+33. Assessment Serving Rules
+
+Assessment questions must be randomly selected per topic.
+
+Selection rules:
+- Must belong to the active leaf topic bank.
+- Should avoid immediate repeats.
+- Should support a rich buffet of question types.
+- May use instructor-defined or system-defined selection weights.
+- The next question after a failure should be different from the failed one.
+
+34. Grading Rules
+
+Grading behavior depends on question type.
+
+Possible grading modes:
+- deterministic exact match
+- numeric tolerance
+- symbolic equivalence
+- rubric-driven LLM grading
+- code execution harness
+- hybrid grading
+
+The grading result should be normalized into a common structure regardless of grading method.
+
+35. Remediation Rules
+
+When a student fails a question, the remediation lesson should:
+- explain the underlying issue
+- use the failed question only as evidence, not as a memorization target
+- prepare the student for a different future question in the same topic scope
+- stay inside approved content
+
+The remediation prompt should explicitly state that the next question will be a different random item from the same leaf topic.
+
+36. Experimentation Strategy
+
+The system should explore aggressively at low data volumes and gradually exploit better-performing strategies as history grows.
+
+Exploration policy should be configurable.
+
+Examples:
+- epsilon-greedy
+- contextual bandit
+- weighted random by policy score
+
+Initial optimization target:
+- maximize quiz success
+- minimize number of incorrect attempts before success
+- minimize signs of frustration
+
+37. Policy Performance Model
+
+Recommended PolicyPerformance fields:
+- policyId: string
+- leafTopicId: string
+- impressions: number
+- successCount: number
+- failureCount: number
+- averageAttemptsToMastery: number
+- averageSentimentDelta: number
+- updatedAt: string
+
+38. Logging Requirements
+
+Every meaningful event must be logged.
+
+Required event types:
+- lesson_generated
+- student_question
+- tutor_response
+- question_served
+- answer_submitted
+- answer_graded
+- failure_analyzed
+- remediation_generated
+- topic_mastered
+- feedback_captured
+- policy_assigned
+- session_analyzed
+
+Recommended EventLog fields:
+- eventId: string
+- eventType: string
+- studentId: string
+- courseId: string
+- leafTopicId: string
+- sessionId: string
+- policyAssignmentId?: string
+- promptName?: string
+- promptHash?: string
+- llmProvider?: string
+- llmModel?: string
+- payload: object
+- createdAt: string
+
+39. Analytics Requirements
+
+The platform should support analytics for:
+- success rate by leaf topic
+- average attempts to mastery by topic
+- performance by lesson style
+- misconception frequency
+- sentiment/frustration patterns
+- topic dropout or stall points
+- policy performance over time
+
+Instructor-facing analytics are secondary to root-course authoring but should be possible later.
+
+40. UI Contract
+
+Left panel:
+- topic tree
+- mastery indicators
+- current topic highlight
+
+Center panel:
+- generated lesson
+- topic-scoped conversation thread
+- remediation content
+
+Right panel:
+- quiz question panel
+- answer submission
+- next-question button
+- optional visualization display if applicable
+
+The backend should expose stable data contracts to support this three-panel UI.
+
+41. API and Service Contracts
+
+Representative application services:
+- startTopicLesson(studentId, leafTopicId)
+- submitStudentAnswer(studentId, leafTopicId, questionId, answer)
+- getNextQuestion(studentId, leafTopicId)
+- answerStudentTopicQuestion(studentId, leafTopicId, message)
+- getTopicConversation(studentId, leafTopicId)
+- getStudentProgress(studentId, courseId)
+
+42. Configuration Requirements
+
+System behavior should be configurable without code changes where reasonable.
+
+Recommended config categories:
+- LLM provider/model defaults
+- prompt file mapping
+- mastery policy
+- experiment exploration rate
+- grading mode per question type
+- retrieval chunk limits
+- frustration thresholds
+
+43. Testing Requirements
+
+The system should support rigorous testing with mock providers.
+
+Required test types:
+- schema validation tests
+- repository contract tests
+- prompt rendering tests
+- mock LLM agent tests
+- orchestration flow tests
+- assessment selection tests
+- mastery policy tests
+- event logging tests
+
+A MockLlmClient should allow replayable tests without live model calls.
+
+44. Deployment Model
+
+Recommended approach:
+- Keep the main production engine in Node.js/TypeScript.
+- Use Apps Script only where useful for integration, lightweight tooling, or prototype flows.
+- Keep the core logic isolated in reusable packages.
+
+The design must preserve the option to run subsets of functionality in Apps Script, but Node should be the primary scalable runtime for large deployment.
+
+45. Security and Safety Position
+
+Initial version:
+- rely on topic-bounded prompts
+- rely on approved corpus retrieval
+- instruct the tutor to stay on topic
+
+Later version:
+- add stronger review and security layers if needed
+
+The system must not be blocked on advanced safety infrastructure for the first release.
+
+46. Initial Build Sequence
+
+Phase 1:
+- Define course schemas
+- Implement course loader and validator
+- Implement question bank loading
+- Implement StudentStateRepository
+- Implement LLM abstraction
+- Implement prompt loading
+- Implement tutor lesson generation
+- Implement quiz serving and grading
+- Implement basic remediation loop
+
+Phase 2:
+- Add failure analysis
+- Add experimentation variables
+- Add sentiment/feedback capture
+- Add analytics and policy tracking
+
+Phase 3:
+- Add richer retrieval
+- Add contextual experimentation
+- Add stronger grading modes
+- Add better policy optimization
+
+47. Minimum Viable Product
+
+MVP must include:
+- One course package loaded from files
+- Topic list and progress display
+- Lesson generation from approved content
+- Quiz serving from leaf-topic bank
+- Answer grading
+- Remediation after failure using failed-item evidence
+- Mastery tracking at leaf-topic level
+- Event logging
+- Prompt files externalized
+- LLM provider abstraction
+
+48. Long-Term Vision
+
+The platform should become a self-improving AI tutor that students love because it consistently teaches well, adapts quickly, remains within scope, and gets students to success with minimal wasted effort.
+
+The end state is not just an LLM that explains topics. It is a curriculum-bounded instructional system that learns, from evidence, which pedagogical approaches work best for which learners and topics.
+
+49. Summary Statement
+
+This system is a curriculum-bounded, multi-agent, self-improving STEM tutoring platform in which instructors define the approved knowledge universe and assessment scope, while LLM-driven lesson generation, remediation, experimentation, and analysis continuously improve how each leaf topic is taught.
