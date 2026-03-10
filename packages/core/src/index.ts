@@ -12,3 +12,6 @@ export { FilePromptRepository } from './services/promptRepository';
 export * from './types/retrieval';
 export { CorpusRetrievalAgent } from './agents/corpusRetrievalAgent';
 export type { Retriever } from './agents/corpusRetrievalAgent';
+export * from './types/lesson';
+export { TutorAgent } from './agents/tutorAgent';
+export type { LessonInput, QAInput } from './agents/tutorAgent';
