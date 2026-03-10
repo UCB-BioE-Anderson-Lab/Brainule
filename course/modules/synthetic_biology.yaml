@@ -1,0 +1,6 @@
+moduleId: synthetic_biology
+title: Synthetic Biology Fundamentals
+description: Core concepts of genetic parts, devices, and systems design.
+unitIds:
+  - dna_sequences
+  - gene_expression

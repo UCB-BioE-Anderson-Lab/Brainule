@@ -1,7 +1,9 @@
 import { Express } from 'express';
 import { healthRouter } from './health';
+import { createCourseRouter } from './course';
+import { courseRepo } from '../context';
 
 export function registerRoutes(app: Express): void {
   app.use(healthRouter);
-  // Additional routers registered here as milestones are implemented.
+  app.use(createCourseRouter(courseRepo));
 }

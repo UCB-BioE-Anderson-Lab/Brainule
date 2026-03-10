@@ -1,0 +1,55 @@
+[
+  {
+    "questionId": "fd_001",
+    "leafTopicId": "python_function_definitions",
+    "questionType": "multiple_choice",
+    "difficulty": "easy",
+    "prompt": "What does this function return?\n\n```python\ndef greet(name):\n    print('Hello, ' + name)\n\nresult = greet('Alice')\n```",
+    "choices": { "A": "'Hello, Alice'", "B": "None", "C": "'Alice'", "D": "Error" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["return", "print"],
+    "active": true
+  },
+  {
+    "questionId": "fd_002",
+    "leafTopicId": "python_function_definitions",
+    "questionType": "multiple_choice",
+    "difficulty": "medium",
+    "prompt": "What is the output?\n\n```python\ndef add(a, b=10):\n    return a + b\n\nprint(add(5))\n```",
+    "choices": { "A": "5", "B": "10", "C": "15", "D": "Error" },
+    "answerKey": "C",
+    "rubric": null,
+    "tags": ["default arguments"],
+    "active": true
+  },
+  {
+    "questionId": "fd_003",
+    "leafTopicId": "python_function_definitions",
+    "questionType": "multiple_choice",
+    "difficulty": "hard",
+    "prompt": "What is the output of the following?\n\n```python\ndef append_item(item, lst=[]):\n    lst.append(item)\n    return lst\n\nprint(append_item(1))\nprint(append_item(2))\n```",
+    "choices": { "A": "[1]\n[2]", "B": "[1]\n[1, 2]", "C": "[1, 2]\n[1, 2]", "D": "Error" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["mutable default argument"],
+    "active": true
+  },
+  {
+    "questionId": "fd_004",
+    "leafTopicId": "python_function_definitions",
+    "questionType": "multiple_choice",
+    "difficulty": "medium",
+    "prompt": "Which syntax correctly defines a function that returns the square of a number?",
+    "choices": {
+      "A": "function square(n): return n**2",
+      "B": "def square(n): return n**2",
+      "C": "def square(n) { return n**2; }",
+      "D": "def square(n) => n**2"
+    },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["def syntax"],
+    "active": true
+  }
+]

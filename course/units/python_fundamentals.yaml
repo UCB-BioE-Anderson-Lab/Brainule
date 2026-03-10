@@ -1,0 +1,8 @@
+unitId: python_fundamentals
+moduleId: python_literacy
+title: Python Fundamentals
+description: Variables, types, control flow, and functions.
+topicIds:
+  - data_types_and_variables
+  - control_flow
+  - functions_and_scope

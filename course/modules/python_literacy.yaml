@@ -1,0 +1,6 @@
+moduleId: python_literacy
+title: Python Programming Literacy
+description: Core Python concepts required for computational biology work.
+unitIds:
+  - python_fundamentals
+  - python_data_structures

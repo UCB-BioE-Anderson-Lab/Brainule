@@ -1,0 +1,6 @@
+unitId: gene_expression
+moduleId: synthetic_biology
+title: Gene Expression and Regulation
+description: Promoters, RBSs, terminators, and gene expression control.
+topicIds:
+  - transcription_translation

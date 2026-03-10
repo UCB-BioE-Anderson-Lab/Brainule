@@ -1,0 +1,22 @@
+leafTopicId: python_function_definitions
+parentTopicId: functions_and_scope
+title: Defining and Calling Functions
+description: >
+  def syntax, positional and keyword arguments, default values,
+  return statements, and why functions must be defined before use.
+learningObjectiveIds:
+  - lo_function_define
+  - lo_function_return
+prerequisiteLeafTopicIds:
+  - python_primitive_types
+  - python_for_loops
+misconceptionIds:
+  - mc_return_vs_print
+  - mc_default_mutable_arg
+allowedKnowledgeTags:
+  - python_function_definitions
+assessmentBankIds:
+  - bank_function_definitions
+visualizationGuideIds: []
+defaultDifficultyExpectation: medium
+active: true

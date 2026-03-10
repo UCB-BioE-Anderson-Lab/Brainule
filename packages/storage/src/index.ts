@@ -1,2 +1,2 @@
-// Storage package — repository interfaces and adapters
-// Fully implemented across M2, M6, M9, M12.
+export { CourseRepository } from './repositories/course';
+export { FilesystemCourseRepository } from './filesystem/courseRepository';

@@ -1,0 +1,6 @@
+unitId: dna_sequences
+moduleId: synthetic_biology
+title: DNA Sequence Representation
+description: How DNA sequences are represented and manipulated computationally.
+topicIds:
+  - sequence_basics

@@ -1,0 +1,11 @@
+courseId: bioe_134_234_midterm
+title: "BioE 134/234 Midterm Prep"
+subject: Bioengineering
+levelRange: "Undergraduate/Graduate"
+version: "1.0.0"
+authors:
+  - Anderson Lab
+description: >
+  Midterm preparation covering Python programming literacy, biological sequence
+  manipulation, and synthetic biology design for BioE 134/234.
+prerequisites: []

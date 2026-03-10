@@ -1,0 +1,8 @@
+topicId: data_types_and_variables
+unitId: python_fundamentals
+title: Data Types, Containers, and Sequence Operations
+description: Variables as names bound to values, Python types, and valid operations.
+leafTopicIds:
+  - python_primitive_types
+  - python_lists_and_indexing
+prerequisiteTopicIds: []

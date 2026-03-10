@@ -1,0 +1,75 @@
+- misconceptionId: mc_list_copy_reference
+  leafTopicId: python_lists_and_indexing
+  label: Assignment copies a list
+  description: >
+    Students believe b = a creates a new list. It creates a second reference
+    to the same list object, so mutations via b also affect a.
+  exampleWrongReasoning: "b = a makes b an independent copy of a"
+  correctionStrategy: >
+    Show that id(a) == id(b) after assignment. Use b = a.copy() or b = list(a)
+    for a shallow copy, or copy.deepcopy(a) for nested structures.
+
+- misconceptionId: mc_index_out_of_range
+  leafTopicId: python_lists_and_indexing
+  label: Negative indices are invalid
+  description: Students don't know Python supports negative indexing (a[-1] is last element).
+  exampleWrongReasoning: "a[-1] should raise an error"
+  correctionStrategy: >
+    Explain Python negative indexing: -1 is last element, -2 is second to last, etc.
+
+- misconceptionId: mc_loop_variable_scope
+  leafTopicId: python_for_loops
+  label: Loop variable disappears after the loop
+  description: Students think the loop variable is scoped to the loop body.
+  exampleWrongReasoning: "i is not defined after the for loop ends"
+  correctionStrategy: >
+    Python for-loop variables persist after the loop. The final value of i
+    equals the last element iterated.
+
+- misconceptionId: mc_range_end_exclusive
+  leafTopicId: python_for_loops
+  label: range(n) includes n
+  description: Students expect range(5) to produce 0,1,2,3,4,5 instead of 0,1,2,3,4.
+  exampleWrongReasoning: "range(5) should go up to and including 5"
+  correctionStrategy: >
+    range(n) produces integers from 0 to n-1. Use range(n+1) to include n.
+
+- misconceptionId: mc_return_vs_print
+  leafTopicId: python_function_definitions
+  label: print() and return are interchangeable
+  description: >
+    Students think a function that prints its result can be used like a function
+    that returns it. print() outputs to console; it does not make a value available
+    to callers.
+  exampleWrongReasoning: "def add(a,b): print(a+b) — I can use result = add(1,2)"
+  correctionStrategy: >
+    Show that result = add(1,2) is None when add() only prints.
+    Only return produces a value the caller can use.
+
+- misconceptionId: mc_default_mutable_arg
+  leafTopicId: python_function_definitions
+  label: Mutable default arguments are re-created each call
+  description: Using a list as a default argument persists across calls.
+  exampleWrongReasoning: "def f(lst=[]): — lst starts fresh every call"
+  correctionStrategy: >
+    Default arguments are evaluated once at function definition time.
+    Use None as default and create the list inside: if lst is None: lst = []
+
+- misconceptionId: mc_dna_case_sensitive
+  leafTopicId: dna_string_representation
+  label: DNA string operations are case-insensitive
+  description: Students assume 'ATCG' == 'atcg' in Python string comparisons.
+  exampleWrongReasoning: "'ATCG' and 'atcg' represent the same sequence so they should be equal"
+  correctionStrategy: >
+    Python string equality is case-sensitive. Always normalize to uppercase
+    with .upper() before comparison or manipulation.
+
+- misconceptionId: mc_complement_direction
+  leafTopicId: dna_string_representation
+  label: Complement and reverse complement are the same
+  description: Students confuse the complement strand with the reverse complement.
+  exampleWrongReasoning: "The complement of ATCG is CGTA (already in same 5'→3' direction)"
+  correctionStrategy: >
+    Complement replaces each base (A↔T, G↔C) but keeps the same direction.
+    Reverse complement additionally reverses the sequence, giving the antiparallel
+    strand read 5'→3'.

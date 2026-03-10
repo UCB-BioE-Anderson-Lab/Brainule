@@ -1,0 +1,38 @@
+- docId: python_types_intro
+  title: Python Primitive Types
+  source: Anderson Lab course notes
+  topicTags:
+    - data_types_and_variables
+  leafTopicTags:
+    - python_primitive_types
+  contentPath: corpus/python_types_intro.md
+  chunkingStrategy: section
+  difficulty: easy
+  visualizationHints: []
+
+- docId: python_lists_guide
+  title: Python Lists and Mutability
+  source: Anderson Lab course notes
+  topicTags:
+    - data_types_and_variables
+    - lists_and_mutability
+  leafTopicTags:
+    - python_lists_and_indexing
+    - python_for_loops
+  contentPath: corpus/python_lists_guide.md
+  chunkingStrategy: section
+  difficulty: medium
+  visualizationHints: []
+
+- docId: dna_sequences_guide
+  title: DNA Sequence Representation
+  source: Anderson Lab course notes
+  topicTags:
+    - sequence_basics
+  leafTopicTags:
+    - dna_string_representation
+    - python_lists_and_indexing
+  contentPath: corpus/dna_sequences_guide.md
+  chunkingStrategy: section
+  difficulty: medium
+  visualizationHints: []

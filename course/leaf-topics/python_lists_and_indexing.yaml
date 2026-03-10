@@ -1,0 +1,21 @@
+leafTopicId: python_lists_and_indexing
+parentTopicId: data_types_and_variables
+title: Lists, Indexing, and Mutability
+description: >
+  Python lists as mutable ordered sequences. Indexing, slicing, append,
+  and the crucial distinction between copying a reference vs. copying values.
+learningObjectiveIds:
+  - lo_list_index
+  - lo_list_mutability
+prerequisiteLeafTopicIds:
+  - python_primitive_types
+misconceptionIds:
+  - mc_list_copy_reference
+  - mc_index_out_of_range
+allowedKnowledgeTags:
+  - python_lists_and_indexing
+assessmentBankIds:
+  - bank_lists_and_indexing
+visualizationGuideIds: []
+defaultDifficultyExpectation: medium
+active: true

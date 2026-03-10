@@ -1,0 +1,21 @@
+leafTopicId: dna_string_representation
+parentTopicId: sequence_basics
+title: DNA as Strings
+description: >
+  Representing DNA sequences as Python strings using IUPAC nucleotide codes.
+  Complementarity, reverse complement, and sequence slicing for genetic regions.
+learningObjectiveIds:
+  - lo_dna_string_ops
+  - lo_dna_complement
+prerequisiteLeafTopicIds:
+  - python_lists_and_indexing
+misconceptionIds:
+  - mc_dna_case_sensitive
+  - mc_complement_direction
+allowedKnowledgeTags:
+  - dna_string_representation
+assessmentBankIds:
+  - bank_dna_strings
+visualizationGuideIds: []
+defaultDifficultyExpectation: medium
+active: true

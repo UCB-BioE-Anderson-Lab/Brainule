@@ -1,0 +1,15 @@
+- misconceptionId: mc_int_div_float
+  leafTopicId: python_primitive_types
+  label: Integer division returns a float
+  description: Students expect 5/2 to return 2 (integer), not 2.5.
+  exampleWrongReasoning: "5/2 should be 2 because both are integers"
+  correctionStrategy: >
+    Explain that Python 3 / always returns float. Use // for integer (floor) division.
+
+- misconceptionId: mc_str_plus_int
+  leafTopicId: python_primitive_types
+  label: String + int is allowed
+  description: Students try to concatenate a string and an integer without conversion.
+  exampleWrongReasoning: '"count: " + 5 should work like in other languages'
+  correctionStrategy: >
+    Explain Python type strictness. Must use str(5) or f-strings: f"count: {5}".

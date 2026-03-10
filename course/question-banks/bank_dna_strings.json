@@ -1,0 +1,50 @@
+[
+  {
+    "questionId": "dna_001",
+    "leafTopicId": "dna_string_representation",
+    "questionType": "multiple_choice",
+    "difficulty": "easy",
+    "prompt": "In Python, is 'ATCG' == 'atcg'?",
+    "choices": { "A": "True", "B": "False", "C": "Depends on the OS", "D": "Error" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["string equality", "case sensitivity"],
+    "active": true
+  },
+  {
+    "questionId": "dna_002",
+    "leafTopicId": "dna_string_representation",
+    "questionType": "multiple_choice",
+    "difficulty": "medium",
+    "prompt": "What is the complement of the DNA sequence 'ATCG' (A↔T, G↔C)?",
+    "choices": { "A": "TAGC", "B": "CGAT", "C": "GCTA", "D": "ATCG" },
+    "answerKey": "A",
+    "rubric": null,
+    "tags": ["complement"],
+    "active": true
+  },
+  {
+    "questionId": "dna_003",
+    "leafTopicId": "dna_string_representation",
+    "questionType": "multiple_choice",
+    "difficulty": "medium",
+    "prompt": "What is the reverse complement of 'ATCG'?",
+    "choices": { "A": "TAGC", "B": "CGAT", "C": "GCTA", "D": "ATCG" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["reverse complement"],
+    "active": true
+  },
+  {
+    "questionId": "dna_004",
+    "leafTopicId": "dna_string_representation",
+    "questionType": "multiple_choice",
+    "difficulty": "easy",
+    "prompt": "Given seq = 'GATTACA', what does seq[1:4] return?",
+    "choices": { "A": "'GAT'", "B": "'ATT'", "C": "'ATTA'", "D": "'GATT'" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["slicing", "DNA"],
+    "active": true
+  }
+]

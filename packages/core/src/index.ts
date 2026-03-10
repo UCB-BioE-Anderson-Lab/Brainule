@@ -1,2 +1,3 @@
-// Core package — domain logic, agents, orchestration
-// Exports are added as milestones are implemented.
+export * from './types/course';
+export * from './schemas/course';
+export { loadCoursePackage } from './services/courseLoader';

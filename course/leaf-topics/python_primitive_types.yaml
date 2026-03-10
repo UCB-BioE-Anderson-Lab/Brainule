@@ -1,0 +1,20 @@
+leafTopicId: python_primitive_types
+parentTopicId: data_types_and_variables
+title: Primitive Types (int, float, str, bool)
+description: >
+  Python's primitive types — int, float, str, bool — and the operations
+  each supports. Type coercion, truthiness, and common type errors.
+learningObjectiveIds:
+  - lo_primitive_identify
+  - lo_primitive_operations
+prerequisiteLeafTopicIds: []
+misconceptionIds:
+  - mc_int_div_float
+  - mc_str_plus_int
+allowedKnowledgeTags:
+  - python_primitive_types
+assessmentBankIds:
+  - bank_primitive_types
+visualizationGuideIds: []
+defaultDifficultyExpectation: easy
+active: true

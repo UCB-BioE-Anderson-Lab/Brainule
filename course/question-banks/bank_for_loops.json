@@ -1,0 +1,50 @@
+[
+  {
+    "questionId": "fl_001",
+    "leafTopicId": "python_for_loops",
+    "questionType": "multiple_choice",
+    "difficulty": "easy",
+    "prompt": "What does list(range(5)) produce?",
+    "choices": { "A": "[1, 2, 3, 4, 5]", "B": "[0, 1, 2, 3, 4]", "C": "[0, 1, 2, 3, 4, 5]", "D": "[1, 2, 3, 4]" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["range"],
+    "active": true
+  },
+  {
+    "questionId": "fl_002",
+    "leafTopicId": "python_for_loops",
+    "questionType": "multiple_choice",
+    "difficulty": "medium",
+    "prompt": "After this code runs, what is the value of i?\n\n```python\nfor i in range(3):\n    pass\n```",
+    "choices": { "A": "0", "B": "2", "C": "3", "D": "NameError: i is not defined" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["loop variable", "scope"],
+    "active": true
+  },
+  {
+    "questionId": "fl_003",
+    "leafTopicId": "python_for_loops",
+    "questionType": "multiple_choice",
+    "difficulty": "medium",
+    "prompt": "What is the output of: [x*2 for x in [1, 2, 3]]?",
+    "choices": { "A": "[1, 2, 3]", "B": "[2, 4, 6]", "C": "[1, 4, 9]", "D": "Error" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["list comprehension"],
+    "active": true
+  },
+  {
+    "questionId": "fl_004",
+    "leafTopicId": "python_for_loops",
+    "questionType": "multiple_choice",
+    "difficulty": "hard",
+    "prompt": "What does enumerate(['a', 'b', 'c']) yield on the first iteration?",
+    "choices": { "A": "'a'", "B": "0", "C": "(0, 'a')", "D": "('a', 0)" },
+    "answerKey": "C",
+    "rubric": null,
+    "tags": ["enumerate"],
+    "active": true
+  }
+]

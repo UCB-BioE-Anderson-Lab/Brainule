@@ -1,0 +1,22 @@
+leafTopicId: python_for_loops
+parentTopicId: control_flow
+title: For Loops and Iteration
+description: >
+  Iterating over lists, strings, and ranges with for loops.
+  enumerate(), zip(), and list comprehensions.
+learningObjectiveIds:
+  - lo_for_loop_basic
+  - lo_for_loop_comprehension
+prerequisiteLeafTopicIds:
+  - python_primitive_types
+  - python_lists_and_indexing
+misconceptionIds:
+  - mc_loop_variable_scope
+  - mc_range_end_exclusive
+allowedKnowledgeTags:
+  - python_for_loops
+assessmentBankIds:
+  - bank_for_loops
+visualizationGuideIds: []
+defaultDifficultyExpectation: medium
+active: true

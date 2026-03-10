@@ -1,0 +1,8 @@
+topicId: sequence_basics
+unitId: dna_sequences
+title: DNA Sequence Basics
+description: Representing DNA as strings, complementarity, and basic sequence operations.
+leafTopicIds:
+  - dna_string_representation
+prerequisiteTopicIds:
+  - data_types_and_variables

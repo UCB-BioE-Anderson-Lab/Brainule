@@ -1,0 +1,50 @@
+[
+  {
+    "questionId": "pt_001",
+    "leafTopicId": "python_primitive_types",
+    "questionType": "multiple_choice",
+    "difficulty": "easy",
+    "prompt": "What is the type of the value returned by 5 / 2 in Python 3?",
+    "choices": { "A": "int", "B": "float", "C": "str", "D": "Error" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["division", "types"],
+    "active": true
+  },
+  {
+    "questionId": "pt_002",
+    "leafTopicId": "python_primitive_types",
+    "questionType": "multiple_choice",
+    "difficulty": "easy",
+    "prompt": "What is the result of: bool(0)?",
+    "choices": { "A": "True", "B": "False", "C": "0", "D": "Error" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["bool", "truthiness"],
+    "active": true
+  },
+  {
+    "questionId": "pt_003",
+    "leafTopicId": "python_primitive_types",
+    "questionType": "multiple_choice",
+    "difficulty": "medium",
+    "prompt": "Which of the following raises a TypeError in Python 3?\n\nA. str(42)\nB. int('7')\nC. 'hello' + 5\nD. float(True)",
+    "choices": { "A": "A", "B": "B", "C": "C", "D": "D" },
+    "answerKey": "C",
+    "rubric": null,
+    "tags": ["TypeError", "concatenation"],
+    "active": true
+  },
+  {
+    "questionId": "pt_004",
+    "leafTopicId": "python_primitive_types",
+    "questionType": "multiple_choice",
+    "difficulty": "medium",
+    "prompt": "What does 7 // 2 evaluate to in Python 3?",
+    "choices": { "A": "3.5", "B": "3", "C": "4", "D": "Error" },
+    "answerKey": "B",
+    "rubric": null,
+    "tags": ["floor division"],
+    "active": true
+  }
+]
