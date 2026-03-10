@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brainule</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+<div id="app-shell">
+
+  <!-- Header -->
+  <header id="app-header">
+    <div id="app-logo">
+      <img src="/brainule_glyph.png" alt="" height="30" style="margin-right:10px;opacity:.85">
+    </div>
+    <span id="app-title">Brainule</span>
+    <div id="app-progress"></div>
+  </header>
+
+  <!-- Three-panel body -->
+  <div id="app-body">
+
+    <!-- Left: Topic list -->
+    <div id="panel-topics">
+      <h2>Topics</h2>
+      <div id="topic-list"><div class="state-empty">Loading…</div></div>
+    </div>
+
+    <!-- Center: Lesson + Conversation -->
+    <div id="panel-lesson">
+      <div id="lesson-placeholder" class="state-empty">Select a topic to begin</div>
+
+      <div id="lesson-content">
+        <div id="lesson-header">
+          <div id="lesson-topic-title"></div>
+        </div>
+        <div id="lesson-scroll">
+          <div id="lesson-body"></div>
+          <div id="lesson-thread"></div>
+        </div>
+        <div id="lesson-input-row">
+          <input id="lesson-input" type="text" placeholder="Ask a question about this lesson…" autocomplete="off">
+          <button id="lesson-send" class="ctrl-btn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Quiz -->
+    <div id="panel-quiz">
+      <div id="quiz-placeholder" class="state-empty">Click a topic to start</div>
+
+      <div id="quiz-content">
+        <div id="q-controls">
+          <span id="q-progress"></span>
+          <button id="btn-next-question" class="ctrl-btn" disabled>Next Question →</button>
+        </div>
+
+        <div id="q-card">
+          <div id="q-difficulty"></div>
+          <div id="q-text"></div>
+          <div id="q-choices"></div>
+          <div id="q-explanation">
+            <div id="q-result-label"></div>
+            <div id="q-answer-line"></div>
+            <div id="q-explanation-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /app-body -->
+</div><!-- /app-shell -->
+
+<script src="/app.js"></script>
+</body>
+</html>

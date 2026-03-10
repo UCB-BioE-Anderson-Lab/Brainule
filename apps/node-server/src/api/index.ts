@@ -1,4 +1,4 @@
-import { Express } from 'express';
+import { Express, Request, Response } from 'express';
 import { healthRouter } from './health';
 import { createCourseRouter } from './course';
 import { createStudentRouter } from './student';
@@ -11,6 +11,11 @@ import { courseRepo, studentService, corpusRetrievalAgent, tutorAgent, assessmen
 import { llmGateway } from '../adapters/llm';
 
 export function registerRoutes(app: Express): void {
+  app.get('/app-bootstrap', async (_req: Request, res: Response) => {
+    const pkg = await courseRepo.getCoursePackage();
+    res.json({ courseId: pkg.metadata.courseId, courseTitle: pkg.metadata.title });
+  });
+
   app.use(healthRouter);
   app.use(createCourseRouter(courseRepo));
   app.use('/students', createStudentRouter(studentService, courseRepo));
