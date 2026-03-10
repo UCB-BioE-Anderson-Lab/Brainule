@@ -7,3 +7,5 @@ export * from './policies/masteryPolicy';
 export * from './services/studentModel';
 export { StudentModelService } from './services/studentModelService';
 export type { StudentStateRepository } from './services/studentModelService';
+export type { PromptRepository } from './services/promptRepository';
+export { FilePromptRepository } from './services/promptRepository';

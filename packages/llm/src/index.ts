@@ -1,5 +1,4 @@
 // LLM package — provider-agnostic interface and adapters
-// Fully implemented in M3.
 export interface LlmRequest {
   systemPrompt: string;
   userPrompt: string;
@@ -33,3 +32,8 @@ export class LlmError extends Error {
     this.name = 'LlmError';
   }
 }
+
+export { OpenAiClient } from './clients/openai';
+export { GeminiClient } from './clients/gemini';
+export { MockLlmClient } from './clients/mock';
+export { LlmGateway, createLlmClient, createLlmGateway } from './gateway';
