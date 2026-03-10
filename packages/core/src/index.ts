@@ -15,3 +15,8 @@ export type { Retriever } from './agents/corpusRetrievalAgent';
 export * from './types/lesson';
 export { TutorAgent } from './agents/tutorAgent';
 export type { LessonInput, QAInput } from './agents/tutorAgent';
+export * from './types/assessment';
+export { AssessmentAgent } from './agents/assessmentAgent';
+export type { QuestionRepository } from './agents/assessmentAgent';
+export { GradingAgent } from './agents/gradingAgent';
+export { AssessmentService } from './services/assessmentService';
