@@ -52,10 +52,3 @@ export interface TutorResponse {
   generatedAt: string;
 }
 
-// Stub for FailureAnalysis — fully implemented in M7
-export interface FailureAnalysis {
-  failureType: string;
-  summary: string;
-  likelyMisconceptionLabels: string[];
-  remediationHints: string[];
-}

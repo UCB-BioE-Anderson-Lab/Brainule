@@ -1,6 +1,7 @@
 import { LlmClient } from '@brainule/llm';
 import { sha256, generateId } from '@brainule/shared';
-import { LeafTopic, LearningObjective, StudentTopicState, RetrievedContentPack, GeneratedLesson, TutorResponse, TeachingParameters, FailureAnalysis } from '../types/index';
+import { LeafTopic, LearningObjective, StudentTopicState, RetrievedContentPack, GeneratedLesson, TutorResponse, TeachingParameters } from '../types/index';
+import { FailureAnalysis } from '../types/remediation';
 import { PromptRepository } from '../services/promptRepository';
 
 export interface LessonInput {
@@ -10,6 +11,14 @@ export interface LessonInput {
   studentTopicState: StudentTopicState;
   learningObjectives?: LearningObjective[];
   priorFailureEvidence?: FailureAnalysis;
+}
+
+export interface RemediationInput {
+  leafTopic: LeafTopic;
+  contentPack: RetrievedContentPack;
+  failureAnalysis: FailureAnalysis;
+  studentTopicState: StudentTopicState;
+  parameters: TeachingParameters;
 }
 
 export interface QAInput {
@@ -92,6 +101,44 @@ export class TutorAgent {
       responseId: generateId(),
       leafTopicId: leafTopic.leafTopicId,
       content: response.text,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  async generateRemediation(input: RemediationInput): Promise<GeneratedLesson> {
+    const { leafTopic, contentPack, failureAnalysis, parameters } = input;
+
+    const corpusText = contentPack.chunks.map((c) => c.content).join('\n\n---\n\n') ||
+      '(No corpus content available for this topic.)';
+
+    const variables: Record<string, string> = {
+      LEAF_TOPIC_TITLE: leafTopic.title,
+      LEAF_TOPIC_DESCRIPTION: leafTopic.description,
+      CORPUS_CHUNKS: corpusText,
+      FAILURE_SUMMARY: failureAnalysis.summary,
+      FAILURE_TYPE: failureAnalysis.failureType,
+      REMEDIATION_HINTS: failureAnalysis.remediationHints.map((h) => `- ${h}`).join('\n') ||
+        '- Review the core concepts carefully.',
+      LESSON_STYLE: parameters.lessonStyle,
+      TONE: parameters.tone,
+    };
+
+    const renderedPrompt = await this.promptRepo.getPrompt('tutor/remediation', variables);
+    const response = await this.llm.generate({
+      systemPrompt: renderedPrompt,
+      userPrompt: `Generate remediation lesson for: ${leafTopic.title}`,
+      responseFormat: 'text',
+    });
+
+    return {
+      lessonId: generateId(),
+      leafTopicId: leafTopic.leafTopicId,
+      content: response.text,
+      parameters,
+      promptName: 'tutor/remediation',
+      promptHash: sha256(renderedPrompt),
+      llmProvider: response.provider,
+      llmModel: response.model,
       generatedAt: new Date().toISOString(),
     };
   }

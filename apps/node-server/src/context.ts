@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { config } from '@brainule/shared';
-import { StudentModelService, CorpusRetrievalAgent, TutorAgent, FilePromptRepository, AssessmentAgent, GradingAgent, AssessmentService } from '@brainule/core';
+import { StudentModelService, CorpusRetrievalAgent, TutorAgent, FilePromptRepository, AssessmentAgent, GradingAgent, AssessmentService, FailureAnalysisAgent, TutoringOrchestrator } from '@brainule/core';
 import { FilesystemCourseRepository, InMemoryStudentStateRepository, InMemoryQuestionRepository } from '@brainule/storage';
 import { TagRetriever, TagRetrieverRepository } from '@brainule/retrieval';
 import { llmGateway } from './adapters/llm';
@@ -31,3 +31,13 @@ const questionRepo = new InMemoryQuestionRepository(async () => {
 export const assessmentAgent = new AssessmentAgent(questionRepo);
 export const gradingAgent = new GradingAgent(llmGateway, promptRepo);
 export const assessmentService = new AssessmentService(assessmentAgent, gradingAgent, studentService);
+
+export const failureAnalysisAgent = new FailureAnalysisAgent(llmGateway, promptRepo);
+export const tutoringOrchestrator = new TutoringOrchestrator(
+  courseRepo,
+  corpusRetrievalAgent,
+  tutorAgent,
+  failureAnalysisAgent,
+  assessmentService,
+  studentService,
+);
