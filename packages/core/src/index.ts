@@ -9,3 +9,6 @@ export { StudentModelService } from './services/studentModelService';
 export type { StudentStateRepository } from './services/studentModelService';
 export type { PromptRepository } from './services/promptRepository';
 export { FilePromptRepository } from './services/promptRepository';
+export * from './types/retrieval';
+export { CorpusRetrievalAgent } from './agents/corpusRetrievalAgent';
+export type { Retriever } from './agents/corpusRetrievalAgent';
