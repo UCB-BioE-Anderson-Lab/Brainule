@@ -3,10 +3,11 @@ import { config } from '@brainule/shared';
 import {
   StudentModelService, CorpusRetrievalAgent, TutorAgent, FilePromptRepository,
   AssessmentAgent, GradingAgent, AssessmentService, FailureAnalysisAgent, TutoringOrchestrator,
+  ExperimentAgent, DefaultTeachingParameterSpace,
 } from '@brainule/core';
 import {
   FilesystemCourseRepository, InMemoryStudentStateRepository, InMemoryQuestionRepository,
-  InMemoryEventLogRepository, GoogleSheetsEventLogRepository,
+  InMemoryEventLogRepository, GoogleSheetsEventLogRepository, InMemoryPolicyRepository,
 } from '@brainule/storage';
 import { TagRetriever, TagRetrieverRepository } from '@brainule/retrieval';
 import { llmGateway } from './adapters/llm';
@@ -39,6 +40,15 @@ export const gradingAgent = new GradingAgent(llmGateway, promptRepo);
 export const assessmentService = new AssessmentService(assessmentAgent, gradingAgent, studentService);
 
 export const failureAnalysisAgent = new FailureAnalysisAgent(llmGateway, promptRepo);
+
+// Experimentation — epsilon-greedy policy selection
+export const policyRepo = new InMemoryPolicyRepository();
+export const experimentAgent = new ExperimentAgent(policyRepo, {
+  explorationRate: config.experimentEpsilon,
+  optimizationTarget: 'quiz_success',
+  parameterSpace: DefaultTeachingParameterSpace,
+});
+
 export const tutoringOrchestrator = new TutoringOrchestrator(
   courseRepo,
   corpusRetrievalAgent,
@@ -46,6 +56,7 @@ export const tutoringOrchestrator = new TutoringOrchestrator(
   failureAnalysisAgent,
   assessmentService,
   studentService,
+  experimentAgent,
 );
 
 // Event logging — Google Sheets when credentials are configured, otherwise in-memory

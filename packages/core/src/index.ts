@@ -30,3 +30,6 @@ export * from './types/events';
 export * from './schemas/events';
 export { EventLogger } from './services/eventLogger';
 export type { EventLogRepository as CoreEventLogRepository } from './services/eventLogger';
+export * from './types/experiment';
+export { ExperimentAgent, getPolicyId, DefaultTeachingParameterSpace } from './agents/experimentAgent';
+export type { PolicyRepository, PolicyAssignmentInput, PolicyOutcome } from './agents/experimentAgent';

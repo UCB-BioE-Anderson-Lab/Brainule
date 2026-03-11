@@ -54,14 +54,15 @@ export function createTutoringRouter(
   });
 
   // POST /tutor/answer
-  // body: { studentId, leafTopicId, questionId, answer, latencyMs? }
+  // body: { studentId, leafTopicId, questionId, answer, latencyMs?, policyAssignmentId? }
   router.post('/answer', async (req: Request, res: Response) => {
-    const { studentId, leafTopicId, questionId, answer, latencyMs = 0 } = req.body as {
+    const { studentId, leafTopicId, questionId, answer, latencyMs = 0, policyAssignmentId } = req.body as {
       studentId?: string;
       leafTopicId?: string;
       questionId?: string;
       answer?: string;
       latencyMs?: number;
+      policyAssignmentId?: string;
     };
     if (!studentId || !leafTopicId || !questionId || answer === undefined) {
       res.status(400).json({ error: 'studentId, leafTopicId, questionId, and answer are required' });
@@ -70,7 +71,7 @@ export function createTutoringRouter(
     const pkg = await courseRepo.getCoursePackage();
     const logger = makeLogger(req, eventLogRepo, pkg.metadata.courseId);
     const result = await orchestrator.submitAnswer(
-      studentId, pkg.metadata.courseId, leafTopicId, questionId, answer, latencyMs, logger,
+      studentId, pkg.metadata.courseId, leafTopicId, questionId, answer, latencyMs, logger, policyAssignmentId,
     );
     res.json(result);
   });

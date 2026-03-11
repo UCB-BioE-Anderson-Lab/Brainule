@@ -5,6 +5,7 @@ import { StudentTopicState } from '../types/student';
 import { TutorAgent } from '../agents/tutorAgent';
 import { FailureAnalysisAgent } from '../agents/failureAnalysisAgent';
 import { CorpusRetrievalAgent } from '../agents/corpusRetrievalAgent';
+import { ExperimentAgent } from '../agents/experimentAgent';
 import { AssessmentService } from '../services/assessmentService';
 import { StudentModelService } from '../services/studentModelService';
 import { getOrCreateTopicState } from '../services/studentModel';
@@ -22,6 +23,7 @@ export class TutoringOrchestrator {
     private readonly failureAnalysisAgent: FailureAnalysisAgent,
     private readonly assessmentService: AssessmentService,
     private readonly studentModelService: StudentModelService,
+    private readonly experimentAgent?: ExperimentAgent,
   ) {}
 
   private async getLeafTopic(leafTopicId: string): Promise<LeafTopic> {
@@ -60,10 +62,35 @@ export class TutoringOrchestrator {
       leafTopic.prerequisiteLeafTopicIds,
     );
 
-    const effectiveParams: TeachingParameters = {
-      ...DefaultTeachingParameters,
-      ...parameters,
-    };
+    // Use ExperimentAgent to select teaching parameters (epsilon-greedy).
+    // If no experimentAgent or caller supplied explicit parameters, fall back to defaults.
+    let effectiveParams: TeachingParameters;
+    let policyAssignmentId: string | undefined;
+
+    if (this.experimentAgent && !parameters) {
+      const assignment = await this.experimentAgent.assignPolicy({
+        studentId,
+        leafTopicId,
+        studentTopicState: topicState,
+      });
+      policyAssignmentId = assignment.policyAssignmentId;
+      effectiveParams = {
+        lessonStyle: assignment.lessonStyle,
+        explanationDepth: assignment.explanationDepth,
+        tone: assignment.tone,
+        exampleCount: assignment.exampleCount,
+        socraticRatio: assignment.socraticRatio,
+        visualizationRatio: assignment.visualizationRatio,
+        prerequisiteRefresh: assignment.prerequisiteRefresh,
+        stepGranularity: 'medium',
+      };
+      logger?.log('policy_assigned', studentId, leafTopicId, {
+        policyAssignmentId,
+        parameters: effectiveParams,
+      });
+    } else {
+      effectiveParams = { ...DefaultTeachingParameters, ...parameters };
+    }
 
     const lesson = await this.tutorAgent.generateLesson({
       leafTopic,
@@ -73,11 +100,20 @@ export class TutoringOrchestrator {
       learningObjectives,
     });
 
-    logger?.log('lesson_generated', studentId, leafTopicId, { parameters: effectiveParams }, {
+    // Attach policyAssignmentId to the lesson so the client can round-trip it
+    if (policyAssignmentId) {
+      lesson.policyAssignmentId = policyAssignmentId;
+    }
+
+    logger?.log('lesson_generated', studentId, leafTopicId, {
+      parameters: effectiveParams,
+      policyAssignmentId,
+    }, {
       promptName: lesson.promptName,
       promptHash: lesson.promptHash,
       llmProvider: lesson.llmProvider,
       llmModel: lesson.llmModel,
+      policyAssignmentId,
     });
 
     return lesson;
@@ -108,6 +144,7 @@ export class TutoringOrchestrator {
     answer: string,
     latencyMs: number,
     logger?: EventLogger,
+    policyAssignmentId?: string,
   ): Promise<AnswerResult> {
     const { gradingResult, updatedState } = await this.assessmentService.submitAnswer(
       studentId,
@@ -136,6 +173,13 @@ export class TutoringOrchestrator {
           correctCount: updatedTopicState.correctCount,
           attemptCount: updatedTopicState.attemptCount,
         });
+        // Record outcome for policy learning
+        if (this.experimentAgent && policyAssignmentId) {
+          this.experimentAgent.recordOutcome(policyAssignmentId, leafTopicId, {
+            correct: true,
+            attemptsToMastery: updatedTopicState.attemptCount,
+          });
+        }
       }
       return { gradingResult, mastered, updatedTopicState };
     }
@@ -185,6 +229,14 @@ export class TutoringOrchestrator {
         llmModel: remediation.llmModel,
       },
     );
+
+    // Record failure outcome for policy learning
+    if (this.experimentAgent && policyAssignmentId) {
+      this.experimentAgent.recordOutcome(policyAssignmentId, leafTopicId, {
+        correct: false,
+        attemptsToMastery: updatedTopicState.attemptCount,
+      });
+    }
 
     return { gradingResult, mastered: false, remediation, updatedTopicState };
   }

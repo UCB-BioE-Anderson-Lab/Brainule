@@ -19,6 +19,7 @@ const session = (() => {
     questionAnswered: false,
     questionStartTime: null,
     lessonContent: '',
+    policyAssignmentId: null, // set by /tutor/start, sent back with /tutor/answer
     masteryMap: new Map(), // leafTopicId → boolean
   };
 })();
@@ -136,6 +137,7 @@ async function selectTopic(leafTopicId) {
       body: JSON.stringify({ studentId: session.studentId, leafTopicId }),
     });
     session.lessonContent = lesson.content || '';
+    session.policyAssignmentId = lesson.policyAssignmentId ?? null;
     renderLessonBody(lesson.content);
     scrollLessonTop();
 
@@ -264,6 +266,7 @@ async function submitAnswer(answer) {
         questionId: session.currentQuestion.questionId,
         answer,
         latencyMs,
+        policyAssignmentId: session.policyAssignmentId,
       }),
     });
 

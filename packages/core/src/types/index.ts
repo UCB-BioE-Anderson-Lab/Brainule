@@ -5,3 +5,4 @@ export * from './lesson';
 export * from './assessment';
 export * from './remediation';
 export * from './events';
+export * from './experiment';

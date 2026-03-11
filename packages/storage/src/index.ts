@@ -8,3 +8,5 @@ export type { EventLogRepository } from './repositories/eventLog';
 export { InMemoryEventLogRepository } from './memory/eventLog';
 export { GoogleSheetsEventLogRepository } from './sheets/eventLogRepository';
 export type { GoogleSheetsConfig } from './sheets/eventLogRepository';
+export type { PolicyRepository } from './repositories/policy';
+export { InMemoryPolicyRepository } from './memory/policy';
