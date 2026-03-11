@@ -33,3 +33,6 @@ export type { EventLogRepository as CoreEventLogRepository } from './services/ev
 export * from './types/experiment';
 export { ExperimentAgent, getPolicyId, DefaultTeachingParameterSpace } from './agents/experimentAgent';
 export type { PolicyRepository, PolicyAssignmentInput, PolicyOutcome } from './agents/experimentAgent';
+export * from './types/analysis';
+export { AnalysisAgent } from './agents/analysisAgent';
+export type { AnalysisPolicyRepository } from './agents/analysisAgent';

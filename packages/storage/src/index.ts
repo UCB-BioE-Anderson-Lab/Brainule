@@ -10,3 +10,4 @@ export { GoogleSheetsEventLogRepository } from './sheets/eventLogRepository';
 export type { GoogleSheetsConfig } from './sheets/eventLogRepository';
 export type { PolicyRepository } from './repositories/policy';
 export { InMemoryPolicyRepository } from './memory/policy';
+export { InMemorySessionSummaryRepository } from './memory/sessionSummary';

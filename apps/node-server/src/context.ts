@@ -3,11 +3,12 @@ import { config } from '@brainule/shared';
 import {
   StudentModelService, CorpusRetrievalAgent, TutorAgent, FilePromptRepository,
   AssessmentAgent, GradingAgent, AssessmentService, FailureAnalysisAgent, TutoringOrchestrator,
-  ExperimentAgent, DefaultTeachingParameterSpace,
+  ExperimentAgent, DefaultTeachingParameterSpace, AnalysisAgent,
 } from '@brainule/core';
 import {
   FilesystemCourseRepository, InMemoryStudentStateRepository, InMemoryQuestionRepository,
   InMemoryEventLogRepository, GoogleSheetsEventLogRepository, InMemoryPolicyRepository,
+  InMemorySessionSummaryRepository,
 } from '@brainule/storage';
 import { TagRetriever, TagRetrieverRepository } from '@brainule/retrieval';
 import { llmGateway } from './adapters/llm';
@@ -74,3 +75,7 @@ export const eventLogRepo = hasGoogleCredentials
       },
     })
   : new InMemoryEventLogRepository();
+
+// Analysis & session summaries
+export const sessionSummaryRepo = new InMemorySessionSummaryRepository();
+export const analysisAgent = new AnalysisAgent(llmGateway, promptRepo, policyRepo);

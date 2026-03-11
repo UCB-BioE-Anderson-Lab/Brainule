@@ -9,7 +9,12 @@ import { createAssessmentRouter } from './assessment';
 import { createTutoringRouter } from './tutoring';
 import { createEventsRouter } from './events';
 import { createPoliciesRouter } from './policies';
-import { courseRepo, studentService, corpusRetrievalAgent, tutorAgent, assessmentService, tutoringOrchestrator, eventLogRepo, policyRepo } from '../context';
+import { createAnalyticsRouter } from './analytics';
+import { createFeedbackRouter } from './feedback';
+import {
+  courseRepo, studentService, corpusRetrievalAgent, tutorAgent, assessmentService,
+  tutoringOrchestrator, eventLogRepo, policyRepo, analysisAgent, sessionSummaryRepo,
+} from '../context';
 import { llmGateway } from '../adapters/llm';
 
 export function registerRoutes(app: Express): void {
@@ -25,7 +30,9 @@ export function registerRoutes(app: Express): void {
   app.use('/corpus', createCorpusRouter(corpusRetrievalAgent, courseRepo));
   app.use('/lessons', createLessonRouter(tutorAgent, corpusRetrievalAgent, studentService, courseRepo));
   app.use('/students', createAssessmentRouter(assessmentService, courseRepo));
-  app.use('/tutor', createTutoringRouter(tutoringOrchestrator, courseRepo, eventLogRepo));
+  app.use('/tutor', createTutoringRouter(tutoringOrchestrator, courseRepo, eventLogRepo, analysisAgent, sessionSummaryRepo));
   app.use('/events', createEventsRouter(eventLogRepo));
   app.use('/policies', createPoliciesRouter(policyRepo));
+  app.use('/analytics', createAnalyticsRouter(analysisAgent, courseRepo, eventLogRepo, policyRepo, sessionSummaryRepo, studentService));
+  app.use('/feedback', createFeedbackRouter(courseRepo, eventLogRepo));
 }

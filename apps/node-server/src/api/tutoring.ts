@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { TutoringOrchestrator, EventLogger, TeachingParameters } from '@brainule/core';
-import { CourseRepository, EventLogRepository } from '@brainule/storage';
+import { TutoringOrchestrator, EventLogger, TeachingParameters, AnalysisAgent } from '@brainule/core';
+import { CourseRepository, EventLogRepository, InMemorySessionSummaryRepository } from '@brainule/storage';
 
 function makeLogger(req: Request, repo: EventLogRepository, courseId: string): EventLogger {
   const sessionId = (req.headers['x-session-id'] as string | undefined) ?? 'unknown';
@@ -11,6 +11,8 @@ export function createTutoringRouter(
   orchestrator: TutoringOrchestrator,
   courseRepo: CourseRepository,
   eventLogRepo: EventLogRepository,
+  analysisAgent?: AnalysisAgent,
+  sessionSummaryRepo?: InMemorySessionSummaryRepository,
 ): Router {
   const router = Router();
 
@@ -95,6 +97,52 @@ export function createTutoringRouter(
       studentId ?? 'anonymous', leafTopicId, studentQuestion, lessonContent, logger,
     );
     res.json(response);
+  });
+
+  // POST /tutor/end-session
+  // body: { studentId, sessionId }
+  // Triggers async session analysis; responds immediately with { ok: true }
+  router.post('/end-session', async (req: Request, res: Response) => {
+    const { studentId, sessionId } = req.body as {
+      studentId?: string;
+      sessionId?: string;
+    };
+    if (!studentId || !sessionId) {
+      res.status(400).json({ error: 'studentId and sessionId are required' });
+      return;
+    }
+
+    res.json({ ok: true, message: 'Session analysis queued' });
+
+    // Fire-and-forget async analysis
+    if (analysisAgent && sessionSummaryRepo) {
+      (async () => {
+        try {
+          const pkg = await courseRepo.getCoursePackage();
+          const events = await eventLogRepo.getEvents({ studentId });
+          // Filter to this session
+          const sessionEvents = events.filter((e) => e.sessionId === sessionId);
+          const result = await analysisAgent.analyzeSession({
+            sessionId,
+            studentId,
+            courseId: pkg.metadata.courseId,
+            events: sessionEvents,
+          });
+          await sessionSummaryRepo.save(result.summary);
+
+          // Log session_analyzed event
+          const logger = new EventLogger(eventLogRepo, pkg.metadata.courseId, sessionId);
+          logger.log('session_analyzed', studentId, sessionEvents[0]?.leafTopicId ?? '', {
+            topicsCovered: result.summary.topicsCovered,
+            masteredThisSession: result.summary.masteredThisSession,
+            totalCorrect: result.summary.totalCorrect,
+            totalIncorrect: result.summary.totalIncorrect,
+          });
+        } catch (err) {
+          console.error('Session analysis failed:', err);
+        }
+      })();
+    }
   });
 
   return router;

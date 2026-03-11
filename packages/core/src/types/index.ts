@@ -6,3 +6,4 @@ export * from './assessment';
 export * from './remediation';
 export * from './events';
 export * from './experiment';
+export * from './analysis';

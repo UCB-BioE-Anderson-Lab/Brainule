@@ -369,6 +369,16 @@ document.getElementById('lesson-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendStudentQuestion();
 });
 
+// ── Session end on tab hide / close ──────────────────────────
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    // Use sendBeacon for reliable delivery on tab close
+    const payload = JSON.stringify({ studentId: session.studentId, sessionId: session.sessionId });
+    navigator.sendBeacon('/tutor/end-session', new Blob([payload], { type: 'application/json' }));
+  }
+});
+
 // ── Start ─────────────────────────────────────────────────────
 
 init();
