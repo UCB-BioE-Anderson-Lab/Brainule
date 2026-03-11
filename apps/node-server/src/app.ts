@@ -6,7 +6,7 @@ export function createApp(): Express {
   const app = express();
 
   app.use(express.json());
-  app.use(express.static(path.resolve(process.cwd(), 'public')));
+  app.use(express.static(path.resolve(__dirname, '..', 'public')));
 
   registerRoutes(app);
 
