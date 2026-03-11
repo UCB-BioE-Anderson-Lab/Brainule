@@ -26,3 +26,7 @@ export type { FailureAnalysisInput } from './agents/failureAnalysisAgent';
 export type { RemediationInput } from './agents/tutorAgent';
 export { TutoringOrchestrator } from './orchestration/tutoringOrchestrator';
 export type { CourseDataSource } from './orchestration/tutoringOrchestrator';
+export * from './types/events';
+export * from './schemas/events';
+export { EventLogger } from './services/eventLogger';
+export type { EventLogRepository as CoreEventLogRepository } from './services/eventLogger';

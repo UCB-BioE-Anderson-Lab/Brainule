@@ -4,3 +4,4 @@ export * from './retrieval';
 export * from './lesson';
 export * from './assessment';
 export * from './remediation';
+export * from './events';

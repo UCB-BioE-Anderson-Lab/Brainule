@@ -9,8 +9,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@brainule/core": "workspace:*",
     "@brainule/shared": "workspace:*",
-    "@brainule/core": "workspace:*"
+    "googleapis": "^171.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

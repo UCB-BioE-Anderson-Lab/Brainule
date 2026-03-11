@@ -7,6 +7,7 @@ export const config = {
   geminiApiKey: process.env.GEMINI_API_KEY,
   storageBackend: process.env.STORAGE_BACKEND ?? 'memory',
   googleSpreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
+  googleShareEmail: process.env.GOOGLE_SHARE_EMAIL,
   courseDir: process.env.COURSE_DIR ?? 'course',
   promptsDir: process.env.PROMPTS_DIR ?? 'packages/prompts',
   experimentEpsilon: parseFloat(process.env.EXPERIMENT_EPSILON ?? '0.3'),

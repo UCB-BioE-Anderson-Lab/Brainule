@@ -8,8 +8,11 @@ const session = (() => {
     studentId = crypto.randomUUID();
     localStorage.setItem('brainule-studentId', studentId);
   }
+  // sessionId is per-tab (not persisted) — identifies a single browser session
+  const sessionId = crypto.randomUUID();
   return {
     studentId,
+    sessionId,
     courseId: null,
     currentTopicId: null,
     currentQuestion: null,
@@ -32,7 +35,11 @@ function renderMarkdown(text) {
 async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Session-Id': session.sessionId,
+      ...(options.headers || {}),
+    },
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');

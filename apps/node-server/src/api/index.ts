@@ -7,7 +7,8 @@ import { createCorpusRouter } from './corpus';
 import { createLessonRouter } from './lesson';
 import { createAssessmentRouter } from './assessment';
 import { createTutoringRouter } from './tutoring';
-import { courseRepo, studentService, corpusRetrievalAgent, tutorAgent, assessmentService, tutoringOrchestrator } from '../context';
+import { createEventsRouter } from './events';
+import { courseRepo, studentService, corpusRetrievalAgent, tutorAgent, assessmentService, tutoringOrchestrator, eventLogRepo } from '../context';
 import { llmGateway } from '../adapters/llm';
 
 export function registerRoutes(app: Express): void {
@@ -23,5 +24,6 @@ export function registerRoutes(app: Express): void {
   app.use('/corpus', createCorpusRouter(corpusRetrievalAgent, courseRepo));
   app.use('/lessons', createLessonRouter(tutorAgent, corpusRetrievalAgent, studentService, courseRepo));
   app.use('/students', createAssessmentRouter(assessmentService, courseRepo));
-  app.use('/tutor', createTutoringRouter(tutoringOrchestrator, courseRepo));
+  app.use('/tutor', createTutoringRouter(tutoringOrchestrator, courseRepo, eventLogRepo));
+  app.use('/events', createEventsRouter(eventLogRepo));
 }

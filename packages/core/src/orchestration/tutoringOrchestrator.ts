@@ -1,7 +1,6 @@
 import { AssessmentItem, CoursePackage, LeafTopic, Misconception, LearningObjective } from '../types/course';
 import { GeneratedLesson, TutorResponse, DefaultTeachingParameters, TeachingParameters } from '../types/lesson';
 import { AnswerResult } from '../types/remediation';
-import { GradingResult } from '../types/assessment';
 import { StudentTopicState } from '../types/student';
 import { TutorAgent } from '../agents/tutorAgent';
 import { FailureAnalysisAgent } from '../agents/failureAnalysisAgent';
@@ -9,6 +8,7 @@ import { CorpusRetrievalAgent } from '../agents/corpusRetrievalAgent';
 import { AssessmentService } from '../services/assessmentService';
 import { StudentModelService } from '../services/studentModelService';
 import { getOrCreateTopicState } from '../services/studentModel';
+import { EventLogger } from '../services/eventLogger';
 
 export interface CourseDataSource {
   getCoursePackage(): Promise<CoursePackage>;
@@ -46,6 +46,7 @@ export class TutoringOrchestrator {
     courseId: string,
     leafTopicId: string,
     parameters?: Partial<TeachingParameters>,
+    logger?: EventLogger,
   ): Promise<GeneratedLesson> {
     const [leafTopic, learningObjectives, state] = await Promise.all([
       this.getLeafTopic(leafTopicId),
@@ -64,21 +65,39 @@ export class TutoringOrchestrator {
       ...parameters,
     };
 
-    return this.tutorAgent.generateLesson({
+    const lesson = await this.tutorAgent.generateLesson({
       leafTopic,
       contentPack,
       parameters: effectiveParams,
       studentTopicState: topicState,
       learningObjectives,
     });
+
+    logger?.log('lesson_generated', studentId, leafTopicId, { parameters: effectiveParams }, {
+      promptName: lesson.promptName,
+      promptHash: lesson.promptHash,
+      llmProvider: lesson.llmProvider,
+      llmModel: lesson.llmModel,
+    });
+
+    return lesson;
   }
 
   async getNextQuestion(
     studentId: string,
     courseId: string,
     leafTopicId: string,
+    logger?: EventLogger,
   ): Promise<AssessmentItem> {
-    return this.assessmentService.getNextQuestion(studentId, courseId, leafTopicId);
+    const question = await this.assessmentService.getNextQuestion(studentId, courseId, leafTopicId);
+
+    logger?.log('question_served', studentId, leafTopicId, {
+      questionId: question.questionId,
+      questionType: question.questionType,
+      difficulty: question.difficulty,
+    });
+
+    return question;
   }
 
   async submitAnswer(
@@ -88,6 +107,7 @@ export class TutoringOrchestrator {
     questionId: string,
     answer: string,
     latencyMs: number,
+    logger?: EventLogger,
   ): Promise<AnswerResult> {
     const { gradingResult, updatedState } = await this.assessmentService.submitAnswer(
       studentId,
@@ -101,7 +121,22 @@ export class TutoringOrchestrator {
     const updatedTopicState: StudentTopicState = getOrCreateTopicState(updatedState, leafTopicId);
     const mastered = updatedTopicState.mastered;
 
+    // Log answer submission + grading
+    logger?.log('answer_submitted', studentId, leafTopicId, { questionId, answer, latencyMs });
+    logger?.log('answer_graded', studentId, leafTopicId, {
+      questionId,
+      correct: gradingResult.correct,
+      score: gradingResult.score,
+      graderConfidence: gradingResult.graderConfidence,
+    });
+
     if (gradingResult.correct) {
+      if (mastered) {
+        logger?.log('topic_mastered', studentId, leafTopicId, {
+          correctCount: updatedTopicState.correctCount,
+          attemptCount: updatedTopicState.attemptCount,
+        });
+      }
       return { gradingResult, mastered, updatedTopicState };
     }
 
@@ -109,13 +144,9 @@ export class TutoringOrchestrator {
     const [leafTopic, misconceptions, contentPack] = await Promise.all([
       this.getLeafTopic(leafTopicId),
       this.getMisconceptions(leafTopicId),
-      this.corpusRetrievalAgent.retrieve(
-        { leafTopicId } as LeafTopic,
-        [],
-      ),
+      this.corpusRetrievalAgent.retrieve({ leafTopicId } as LeafTopic, []),
     ]);
 
-    // Get the question to pass to failure analysis
     const pkg = await this.courseDataSource.getCoursePackage();
     const question = pkg.assessmentItems.find((q) => q.questionId === questionId);
     if (!question) {
@@ -131,6 +162,12 @@ export class TutoringOrchestrator {
       topicMisconceptions: misconceptions,
     });
 
+    logger?.log('failure_analyzed', studentId, leafTopicId, {
+      failureType: failureAnalysis.failureType,
+      likelyMisconceptionIds: failureAnalysis.likelyMisconceptionIds,
+      summary: failureAnalysis.summary,
+    });
+
     const remediation = await this.tutorAgent.generateRemediation({
       leafTopic,
       contentPack,
@@ -139,20 +176,39 @@ export class TutoringOrchestrator {
       parameters: DefaultTeachingParameters,
     });
 
+    logger?.log('remediation_generated', studentId, leafTopicId,
+      { failureType: failureAnalysis.failureType },
+      {
+        promptName: remediation.promptName,
+        promptHash: remediation.promptHash,
+        llmProvider: remediation.llmProvider,
+        llmModel: remediation.llmModel,
+      },
+    );
+
     return { gradingResult, mastered: false, remediation, updatedTopicState };
   }
 
   async answerStudentQuestion(
+    studentId: string,
     leafTopicId: string,
     studentQuestion: string,
     lessonContent: string,
+    logger?: EventLogger,
   ): Promise<TutorResponse> {
     const leafTopic = await this.getLeafTopic(leafTopicId);
-    return this.tutorAgent.answerStudentQuestion({
+
+    logger?.log('student_question', studentId, leafTopicId, { question: studentQuestion });
+
+    const response = await this.tutorAgent.answerStudentQuestion({
       leafTopic,
       lessonContent,
       studentQuestion,
-      studentTopicState: undefined as unknown as StudentTopicState, // not used in QA
+      studentTopicState: undefined as unknown as StudentTopicState,
     });
+
+    logger?.log('tutor_response', studentId, leafTopicId, { responseId: response.responseId });
+
+    return response;
   }
 }

@@ -4,3 +4,7 @@ export { StudentStateRepository } from './repositories/studentState';
 export { InMemoryStudentStateRepository } from './memory/studentStateRepository';
 export type { QuestionRepository } from './memory/questionRepository';
 export { InMemoryQuestionRepository } from './memory/questionRepository';
+export type { EventLogRepository } from './repositories/eventLog';
+export { InMemoryEventLogRepository } from './memory/eventLog';
+export { GoogleSheetsEventLogRepository } from './sheets/eventLogRepository';
+export type { GoogleSheetsConfig } from './sheets/eventLogRepository';

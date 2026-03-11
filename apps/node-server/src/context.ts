@@ -1,7 +1,13 @@
 import * as path from 'path';
 import { config } from '@brainule/shared';
-import { StudentModelService, CorpusRetrievalAgent, TutorAgent, FilePromptRepository, AssessmentAgent, GradingAgent, AssessmentService, FailureAnalysisAgent, TutoringOrchestrator } from '@brainule/core';
-import { FilesystemCourseRepository, InMemoryStudentStateRepository, InMemoryQuestionRepository } from '@brainule/storage';
+import {
+  StudentModelService, CorpusRetrievalAgent, TutorAgent, FilePromptRepository,
+  AssessmentAgent, GradingAgent, AssessmentService, FailureAnalysisAgent, TutoringOrchestrator,
+} from '@brainule/core';
+import {
+  FilesystemCourseRepository, InMemoryStudentStateRepository, InMemoryQuestionRepository,
+  InMemoryEventLogRepository, GoogleSheetsEventLogRepository,
+} from '@brainule/storage';
 import { TagRetriever, TagRetrieverRepository } from '@brainule/retrieval';
 import { llmGateway } from './adapters/llm';
 
@@ -41,3 +47,19 @@ export const tutoringOrchestrator = new TutoringOrchestrator(
   assessmentService,
   studentService,
 );
+
+// Event logging — Google Sheets when credentials are configured, otherwise in-memory
+const hasGoogleCredentials = Boolean(
+  process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_SERVICE_ACCOUNT_KEY,
+);
+
+export const eventLogRepo = hasGoogleCredentials
+  ? new GoogleSheetsEventLogRepository({
+      spreadsheetId: config.googleSpreadsheetId,
+      shareWithEmail: config.googleShareEmail,
+      courseTitle: async () => {
+        const pkg = await courseRepo.getCoursePackage();
+        return pkg.metadata.title;
+      },
+    })
+  : new InMemoryEventLogRepository();

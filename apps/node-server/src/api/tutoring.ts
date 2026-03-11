@@ -1,17 +1,21 @@
 import { Router, Request, Response } from 'express';
-import { TutoringOrchestrator } from '@brainule/core';
-import { CourseRepository } from '@brainule/storage';
-import { TeachingParameters } from '@brainule/core';
+import { TutoringOrchestrator, EventLogger, TeachingParameters } from '@brainule/core';
+import { CourseRepository, EventLogRepository } from '@brainule/storage';
+
+function makeLogger(req: Request, repo: EventLogRepository, courseId: string): EventLogger {
+  const sessionId = (req.headers['x-session-id'] as string | undefined) ?? 'unknown';
+  return new EventLogger(repo, courseId, sessionId);
+}
 
 export function createTutoringRouter(
   orchestrator: TutoringOrchestrator,
   courseRepo: CourseRepository,
+  eventLogRepo: EventLogRepository,
 ): Router {
   const router = Router();
 
   // POST /tutor/start
   // body: { studentId, leafTopicId, parameters? }
-  // Returns a GeneratedLesson for the given topic
   router.post('/start', async (req: Request, res: Response) => {
     const { studentId, leafTopicId, parameters } = req.body as {
       studentId?: string;
@@ -23,18 +27,15 @@ export function createTutoringRouter(
       return;
     }
     const pkg = await courseRepo.getCoursePackage();
+    const logger = makeLogger(req, eventLogRepo, pkg.metadata.courseId);
     const lesson = await orchestrator.startTopicLesson(
-      studentId,
-      pkg.metadata.courseId,
-      leafTopicId,
-      parameters,
+      studentId, pkg.metadata.courseId, leafTopicId, parameters, logger,
     );
     res.json(lesson);
   });
 
   // GET /tutor/question
   // query: studentId, leafTopicId
-  // Returns the next AssessmentItem for the student
   router.get('/question', async (req: Request, res: Response) => {
     const { studentId, leafTopicId } = req.query as {
       studentId?: string;
@@ -45,13 +46,15 @@ export function createTutoringRouter(
       return;
     }
     const pkg = await courseRepo.getCoursePackage();
-    const question = await orchestrator.getNextQuestion(studentId, pkg.metadata.courseId, leafTopicId);
+    const logger = makeLogger(req, eventLogRepo, pkg.metadata.courseId);
+    const question = await orchestrator.getNextQuestion(
+      studentId, pkg.metadata.courseId, leafTopicId, logger,
+    );
     res.json(question);
   });
 
   // POST /tutor/answer
   // body: { studentId, leafTopicId, questionId, answer, latencyMs? }
-  // Returns AnswerResult (gradingResult, mastered, remediation?, updatedTopicState)
   router.post('/answer', async (req: Request, res: Response) => {
     const { studentId, leafTopicId, questionId, answer, latencyMs = 0 } = req.body as {
       studentId?: string;
@@ -65,22 +68,18 @@ export function createTutoringRouter(
       return;
     }
     const pkg = await courseRepo.getCoursePackage();
+    const logger = makeLogger(req, eventLogRepo, pkg.metadata.courseId);
     const result = await orchestrator.submitAnswer(
-      studentId,
-      pkg.metadata.courseId,
-      leafTopicId,
-      questionId,
-      answer,
-      latencyMs,
+      studentId, pkg.metadata.courseId, leafTopicId, questionId, answer, latencyMs, logger,
     );
     res.json(result);
   });
 
   // POST /tutor/question
-  // body: { leafTopicId, studentQuestion, lessonContent }
-  // Returns TutorResponse answering the student's question
+  // body: { studentId, leafTopicId, studentQuestion, lessonContent? }
   router.post('/question', async (req: Request, res: Response) => {
-    const { leafTopicId, studentQuestion, lessonContent = '' } = req.body as {
+    const { studentId, leafTopicId, studentQuestion, lessonContent = '' } = req.body as {
+      studentId?: string;
       leafTopicId?: string;
       studentQuestion?: string;
       lessonContent?: string;
@@ -89,7 +88,11 @@ export function createTutoringRouter(
       res.status(400).json({ error: 'leafTopicId and studentQuestion are required' });
       return;
     }
-    const response = await orchestrator.answerStudentQuestion(leafTopicId, studentQuestion, lessonContent);
+    const pkg = await courseRepo.getCoursePackage();
+    const logger = studentId ? makeLogger(req, eventLogRepo, pkg.metadata.courseId) : undefined;
+    const response = await orchestrator.answerStudentQuestion(
+      studentId ?? 'anonymous', leafTopicId, studentQuestion, lessonContent, logger,
+    );
     res.json(response);
   });
 
