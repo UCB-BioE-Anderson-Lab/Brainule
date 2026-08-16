@@ -17,9 +17,27 @@ const session = (() => {
 
 // ── Markdown helper ───────────────────────────────────────────
 
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+// marked.js is loaded from a CDN. When it is unavailable — offline, or a
+// blocked network — fall back to handling the two constructs the course
+// content actually relies on: fenced code blocks and line breaks.
+function fallbackMarkdown(text) {
+  const parts = text.split(/```(?:[a-z]*)\n?/);
+  return parts
+    .map((part, i) => (i % 2 === 1
+      ? `<pre><code>${escapeHtml(part.replace(/\n$/, ''))}</code></pre>`
+      : escapeHtml(part).replace(/\n/g, '<br>')))
+    .join('');
+}
+
 function renderMarkdown(text) {
   if (typeof marked !== 'undefined' && marked.parse) return marked.parse(text || '');
-  return (text || '').replace(/\n/g, '<br>');
+  return fallbackMarkdown(text || '');
 }
 
 // ── API helper ────────────────────────────────────────────────
@@ -209,7 +227,7 @@ function renderQuestion(q) {
   document.getElementById('q-difficulty').innerHTML =
     `<span class="badge-difficulty badge-${diff}">${diff}</span>`;
 
-  document.getElementById('q-text').textContent = q.prompt;
+  document.getElementById('q-text').innerHTML = renderMarkdown(q.prompt);
 
   const choicesEl = document.getElementById('q-choices');
   choicesEl.innerHTML = '';
@@ -219,7 +237,8 @@ function renderQuestion(q) {
       const btn = document.createElement('button');
       btn.className = 'choice-btn';
       btn.dataset.key = key;
-      btn.innerHTML = `<span class="choice-key">${key}</span><span class="choice-text">${value}</span>`;
+      btn.innerHTML = `<span class="choice-key">${key}</span>` +
+        `<span class="choice-text">${renderMarkdown(value)}</span>`;
       btn.addEventListener('click', () => submitAnswer(key));
       choicesEl.appendChild(btn);
     });
