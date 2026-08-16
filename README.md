@@ -248,13 +248,21 @@ pnpm start        # run the built server
 pnpm typecheck    # tsc --noEmit across every package
 pnpm lint         # eslint over apps/ and packages/
 pnpm format       # prettier --write
+pnpm test         # build packages, then run tests/ on the Node test runner
 ```
+
+`pnpm test` needs no API key — the suite runs the real agents against
+`MockLlmClient`. `tests/tutor-isolation.test.ts` asserts the property the whole
+design rests on: across every LLM request made during a full tutoring session,
+no question the student has not already answered appears in the context.
 
 Packages are built in dependency order (`shared → llm → core → retrieval/storage →
 node-server`). After changing a package's public types, rebuild before typechecking
 the server, since it consumes the emitted `.d.ts` files.
 
-There is no automated test suite yet — see below.
+Tests live in `tests/` and run on Node's built-in test runner via `tsx` — no
+test framework dependency. Coverage is currently limited to question selection
+and tutor/assessment isolation; see below.
 
 ---
 
@@ -272,11 +280,13 @@ Milestones **M0–M8** are implemented. The remainder of the roadmap in `plan/` 
 Also outstanding, and worth knowing before a live trial:
 
 - **Student state is in memory only.** Restarting the server clears all progress.
-- **No automated tests.** Spec §43 calls for schema, repository, prompt, mock-LLM,
-  orchestration, selection, mastery, and logging tests; none exist. `MockLlmClient` is
-  in place, so the fixtures for writing them are ready.
-- **Question banks are multiple-choice only.** The schema and `GradingAgent` support
-  numeric, short-text, and conceptual items; the shipped course does not use them.
+- **Test coverage is thin.** Spec §43 calls for schema, repository, prompt, mock-LLM,
+  orchestration, selection, mastery, and logging tests. Selection rules and tutor
+  isolation are covered; the rest are not.
+- **LLM-graded questions always grade incorrect on `LLM_PROVIDER=mock`.** The mock
+  returns a fixed JSON payload with no `correct` field, so short-text and
+  conceptual-explanation items fall back to `correct: false`. Multiple-choice and
+  numeric items grade deterministically and work fully offline.
 - **Visualization guides are unimplemented.** `VisualizationGuide` is defined as a type
   per spec §9.9, but the loader does not read a `visualization-guides/` directory and
   nothing consumes the guides.

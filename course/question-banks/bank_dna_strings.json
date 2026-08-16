@@ -5,10 +5,18 @@
     "questionType": "multiple_choice",
     "difficulty": "easy",
     "prompt": "In Python, is 'ATCG' == 'atcg'?",
-    "choices": { "A": "True", "B": "False", "C": "Depends on the OS", "D": "Error" },
+    "choices": {
+      "A": "True",
+      "B": "False",
+      "C": "Depends on the OS",
+      "D": "Error"
+    },
     "answerKey": "B",
     "rubric": null,
-    "tags": ["string equality", "case sensitivity"],
+    "tags": [
+      "string equality",
+      "case sensitivity"
+    ],
     "active": true
   },
   {
@@ -16,11 +24,18 @@
     "leafTopicId": "dna_string_representation",
     "questionType": "multiple_choice",
     "difficulty": "medium",
-    "prompt": "What is the complement of the DNA sequence 'ATCG' (A↔T, G↔C)?",
-    "choices": { "A": "TAGC", "B": "CGAT", "C": "GCTA", "D": "ATCG" },
+    "prompt": "What is the complement of the DNA sequence 'ATCG' (A\u2194T, G\u2194C)?",
+    "choices": {
+      "A": "TAGC",
+      "B": "CGAT",
+      "C": "GCTA",
+      "D": "ATCG"
+    },
     "answerKey": "A",
     "rubric": null,
-    "tags": ["complement"],
+    "tags": [
+      "complement"
+    ],
     "active": true
   },
   {
@@ -29,10 +44,17 @@
     "questionType": "multiple_choice",
     "difficulty": "medium",
     "prompt": "What is the reverse complement of 'ATCG'?",
-    "choices": { "A": "TAGC", "B": "CGAT", "C": "GCTA", "D": "ATCG" },
+    "choices": {
+      "A": "TAGC",
+      "B": "CGAT",
+      "C": "GCTA",
+      "D": "ATCG"
+    },
     "answerKey": "B",
     "rubric": null,
-    "tags": ["reverse complement"],
+    "tags": [
+      "reverse complement"
+    ],
     "active": true
   },
   {
@@ -41,10 +63,36 @@
     "questionType": "multiple_choice",
     "difficulty": "easy",
     "prompt": "Given seq = 'GATTACA', what does seq[1:4] return?",
-    "choices": { "A": "'GAT'", "B": "'ATT'", "C": "'ATTA'", "D": "'GATT'" },
+    "choices": {
+      "A": "'GAT'",
+      "B": "'ATT'",
+      "C": "'ATTA'",
+      "D": "'GATT'"
+    },
     "answerKey": "B",
     "rubric": null,
-    "tags": ["slicing", "DNA"],
+    "tags": [
+      "slicing",
+      "DNA"
+    ],
+    "active": true
+  },
+  {
+    "questionId": "dna_005",
+    "leafTopicId": "dna_string_representation",
+    "questionType": "short_text",
+    "difficulty": "medium",
+    "prompt": "What is the reverse complement of the DNA sequence ATCG? Give the sequence only, written 5' to 3'.",
+    "answerKey": "CGAT",
+    "rubric": {
+      "correctIf": "The answer is the sequence CGAT, in any capitalisation, with or without surrounding whitespace or quotes.",
+      "incorrectIf": "The answer is TAGC (the complement without reversing), GCTA, or any other sequence.",
+      "notes": "Do not award partial credit for describing the method without giving the sequence."
+    },
+    "tags": [
+      "reverse complement",
+      "antiparallel"
+    ],
     "active": true
   }
 ]

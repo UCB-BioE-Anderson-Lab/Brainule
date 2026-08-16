@@ -7,12 +7,18 @@ export interface QuestionRepository {
   getQuestionsForTopic(leafTopicId: string): Promise<AssessmentItem[]>;
 }
 
+/** How many of the student's most recent items to exclude from selection (M6). */
+const DEFAULT_RECENT_WINDOW = 5;
+
 export class InMemoryQuestionRepository implements QuestionRepository {
   private byTopic = new Map<string, AssessmentItem[]>();
   private byId = new Map<string, AssessmentItem>();
   private built = false;
 
-  constructor(private readonly loader: () => Promise<AssessmentItem[]>) {}
+  constructor(
+    private readonly loader: () => Promise<AssessmentItem[]>,
+    private readonly recentWindow: number = DEFAULT_RECENT_WINDOW,
+  ) {}
 
   private async ensureBuilt(): Promise<void> {
     if (this.built) return;
@@ -46,11 +52,23 @@ export class InMemoryQuestionRepository implements QuestionRepository {
       if (pool.length === 0) throw new NoQuestionsAvailableError(leafTopicId);
     }
 
-    const recentIds = new Set(studentTopicState.recentQuestionIds.slice(-5));
+    const recent = studentTopicState.recentQuestionIds;
+    const lastSeenId = recent[recent.length - 1];
+    const recentIds = new Set(recent.slice(-this.recentWindow));
     let eligible = pool.filter((q) => !recentIds.has(q.questionId));
+
     if (eligible.length === 0) {
-      logger.warn('Question pool exhausted for topic, resetting', { leafTopicId });
-      eligible = pool;
+      // The pool is exhausted, so recent items become fair game again — but
+      // never the one the student just saw. Spec §33 requires the question
+      // after a failure to differ from the one that was failed, and re-serving
+      // it immediately would also let a student brute-force the same item.
+      eligible = pool.filter((q) => q.questionId !== lastSeenId);
+      if (eligible.length === 0) eligible = pool; // single-question bank
+      logger.warn('Question pool exhausted for topic, resetting', {
+        leafTopicId,
+        poolSize: pool.length,
+        excluded: lastSeenId,
+      });
     }
 
     return eligible[Math.floor(Math.random() * eligible.length)];

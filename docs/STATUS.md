@@ -18,7 +18,7 @@ Last reviewed: 2026-08-16.
 | M3 — LLM layer & prompts | Complete | OpenAI, Gemini, and Mock adapters. No Anthropic adapter — superseded by the M3 provider decision (see below). |
 | M4 — corpus retrieval | Complete | Tag-based retrieval; leaf-topic tags score 1.0, prerequisite tags 0.5. No embeddings. |
 | M5 — lesson generation | Complete | `LessonInput.priorFailureEvidence` is accepted but unused — the initial lesson does not yet fold in prior failures. |
-| M6 — assessment & grading | Complete | Multiple-choice and numeric grade deterministically; other types route to LLM rubric grading. |
+| M6 — assessment & grading | Complete | Multiple-choice and numeric grade deterministically; other types route to LLM rubric grading. Selection never re-serves the item just answered, including after a pool reset (spec §33) — covered by `tests/assessment-selection.test.ts`. |
 | M7 — remediation loop | Complete | Full lesson → quiz → grade → diagnose → re-teach loop, verified end to end on `LLM_PROVIDER=mock`. |
 | M8 — three-panel web UI | Complete | Markdown rendering depends on a CDN copy of `marked.js`; degrades to plain text offline. |
 | M9 — event logging | **Not built** | No `EventLogRepository`, no event schema, none of the spec §38 event types recorded. |
@@ -60,9 +60,9 @@ Beyond the unbuilt milestones:
 
 | Gap | Impact |
 |---|---|
-| No automated tests | Spec §43 lists eight required test types; none exist. `MockLlmClient` makes them straightforward to write. |
+| Thin test coverage | Spec §43 lists eight required test types. `tests/` now covers assessment selection and tutor isolation; schema, prompt-rendering, mastery, and logging tests are still missing. |
 | Student state is in-memory | Progress is lost on every restart. Blocks any real student trial. |
-| Question banks are multiple-choice only | Numeric and open-ended grading paths are implemented but never exercised by the shipped course. |
+| LLM-graded items always fail on the mock provider | `MockLlmClient` returns a fixed JSON payload with no `correct` field, so short-text and conceptual items grade as incorrect offline. Deterministic types are unaffected. |
 | Visualization guides unimplemented | Type exists per spec §9.9; no loader, no consumer, no `visualization-guides/` directory. |
 | Parametric question templates unimplemented | Type exists per spec §9.12; no generator. |
 | Prompt hashes are logged but not persisted | Spec §27 asks for prompt name and hash on every LLM-mediated output. `GeneratedLesson` carries both; without M9 there is nowhere durable to put them. |

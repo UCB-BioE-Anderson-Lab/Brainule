@@ -5,10 +5,18 @@
     "questionType": "multiple_choice",
     "difficulty": "easy",
     "prompt": "What does this function return?\n\n```python\ndef greet(name):\n    print('Hello, ' + name)\n\nresult = greet('Alice')\n```",
-    "choices": { "A": "'Hello, Alice'", "B": "None", "C": "'Alice'", "D": "Error" },
+    "choices": {
+      "A": "'Hello, Alice'",
+      "B": "None",
+      "C": "'Alice'",
+      "D": "Error"
+    },
     "answerKey": "B",
     "rubric": null,
-    "tags": ["return", "print"],
+    "tags": [
+      "return",
+      "print"
+    ],
     "active": true
   },
   {
@@ -17,10 +25,17 @@
     "questionType": "multiple_choice",
     "difficulty": "medium",
     "prompt": "What is the output?\n\n```python\ndef add(a, b=10):\n    return a + b\n\nprint(add(5))\n```",
-    "choices": { "A": "5", "B": "10", "C": "15", "D": "Error" },
+    "choices": {
+      "A": "5",
+      "B": "10",
+      "C": "15",
+      "D": "Error"
+    },
     "answerKey": "C",
     "rubric": null,
-    "tags": ["default arguments"],
+    "tags": [
+      "default arguments"
+    ],
     "active": true
   },
   {
@@ -29,10 +44,17 @@
     "questionType": "multiple_choice",
     "difficulty": "hard",
     "prompt": "What is the output of the following?\n\n```python\ndef append_item(item, lst=[]):\n    lst.append(item)\n    return lst\n\nprint(append_item(1))\nprint(append_item(2))\n```",
-    "choices": { "A": "[1]\n[2]", "B": "[1]\n[1, 2]", "C": "[1, 2]\n[1, 2]", "D": "Error" },
+    "choices": {
+      "A": "[1]\n[2]",
+      "B": "[1]\n[1, 2]",
+      "C": "[1, 2]\n[1, 2]",
+      "D": "Error"
+    },
     "answerKey": "B",
     "rubric": null,
-    "tags": ["mutable default argument"],
+    "tags": [
+      "mutable default argument"
+    ],
     "active": true
   },
   {
@@ -49,7 +71,31 @@
     },
     "answerKey": "B",
     "rubric": null,
-    "tags": ["def syntax"],
+    "tags": [
+      "def syntax"
+    ],
+    "active": true
+  },
+  {
+    "questionId": "fd_005",
+    "leafTopicId": "python_function_definitions",
+    "questionType": "conceptual_explanation",
+    "difficulty": "medium",
+    "prompt": "A classmate writes a function that ends with `print(total)` instead of `return total`, then complains that `x = compute()` leaves `x` empty. Explain what is going wrong.",
+    "answerKey": "print() writes text to the console and evaluates to None; it does not hand a value back to the caller. A function with no return statement returns None, so x is None. The function needs `return total` for the caller to receive the value.",
+    "rubric": {
+      "requiredPoints": [
+        "print displays a value but does not return it to the caller",
+        "a function with no return statement returns None",
+        "the fix is to use return instead of (or in addition to) print"
+      ],
+      "scoring": "Award 1.0 if the first two points are both present. Award 0.5 if only one is present. Award 0 if the answer confuses print and return or is off topic."
+    },
+    "tags": [
+      "return",
+      "print",
+      "None"
+    ],
     "active": true
   }
 ]

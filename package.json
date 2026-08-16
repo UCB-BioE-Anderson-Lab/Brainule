@@ -11,13 +11,20 @@
     "build": "pnpm run build:packages && pnpm --filter node-server build",
     "typecheck": "pnpm -r exec tsc --noEmit",
     "lint": "eslint 'apps/**/*.ts' 'packages/**/*.ts'",
-    "format": "prettier --write 'apps/**/*.ts' 'packages/**/*.ts'"
+    "format": "prettier --write 'apps/**/*.ts' 'packages/**/*.ts'",
+    "test": "pnpm run build:packages && node --import tsx --test tests/*.test.ts"
   },
   "devDependencies": {
+    "@brainule/core": "workspace:*",
+    "@brainule/llm": "workspace:*",
+    "@brainule/retrieval": "workspace:*",
+    "@brainule/shared": "workspace:*",
+    "@brainule/storage": "workspace:*",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.57.0",
     "prettier": "^3.2.0",
+    "tsx": "^4.15.0",
     "typescript": "^5.4.0"
   }
 }
