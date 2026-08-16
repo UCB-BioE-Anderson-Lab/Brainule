@@ -24,6 +24,18 @@
   difficulty: medium
   visualizationHints: []
 
+- docId: python_functions_guide
+  title: Defining and Calling Functions
+  source: Anderson Lab course notes
+  topicTags:
+    - functions_and_scope
+  leafTopicTags:
+    - python_function_definitions
+  contentPath: corpus/python_functions_guide.md
+  chunkingStrategy: section
+  difficulty: medium
+  visualizationHints: []
+
 - docId: dna_sequences_guide
   title: DNA Sequence Representation
   source: Anderson Lab course notes

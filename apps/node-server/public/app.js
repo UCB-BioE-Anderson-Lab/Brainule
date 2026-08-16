@@ -3,13 +3,8 @@
 // ── Session state ─────────────────────────────────────────────
 
 const session = (() => {
-  let studentId = localStorage.getItem('brainule-studentId');
-  if (!studentId) {
-    studentId = crypto.randomUUID();
-    localStorage.setItem('brainule-studentId', studentId);
-  }
   return {
-    studentId,
+    studentId: localStorage.getItem('brainule-studentId'),
     courseId: null,
     currentTopicId: null,
     currentQuestion: null,
@@ -45,12 +40,26 @@ async function apiFetch(url, options = {}) {
 
 async function init() {
   try {
+    // Bootstrap: the server assigns a studentId for a first-time visitor and
+    // echoes back the one we already hold on a return visit.
+    const boot = await apiFetch(
+      `/app-bootstrap${session.studentId ? `?studentId=${encodeURIComponent(session.studentId)}` : ''}`,
+    );
+    session.studentId = boot.studentId;
+    session.courseId = boot.courseId;
+    localStorage.setItem('brainule-studentId', session.studentId);
+
+    // Create (or retrieve) the server-side student session
+    await apiFetch(`/students/${encodeURIComponent(session.studentId)}`, {
+      method: 'POST',
+      body: JSON.stringify({ courseId: session.courseId }),
+    });
+
     const course = await apiFetch('/course');
-    session.courseId = course.courseId;
     document.title = course.title;
     document.getElementById('app-title').textContent = course.title;
 
-    const progress = await apiFetch(`/students/${session.studentId}/progress`);
+    const progress = await apiFetch(`/students/${encodeURIComponent(session.studentId)}/progress`);
     for (const ts of progress.topicStates) {
       session.masteryMap.set(ts.leafTopicId, ts.mastered);
     }
@@ -185,7 +194,7 @@ async function fetchAndShowQuestion() {
 
   try {
     const q = await apiFetch(
-      `/tutor/question?studentId=${encodeURIComponent(session.studentId)}&leafTopicId=${encodeURIComponent(session.currentTopicId)}`,
+      `/tutor/next-question?studentId=${encodeURIComponent(session.studentId)}&leafTopicId=${encodeURIComponent(session.currentTopicId)}`,
     );
     session.currentQuestion = q;
     session.questionStartTime = Date.now();
@@ -286,14 +295,16 @@ async function submitAnswer(answer) {
 
 function showAnswerResult(result, chosenKey) {
   const correct = result.gradingResult.correct;
-  const answerKey = String(result.updatedTopicState?.leafTopicId ? (session.currentQuestion?.answerKey ?? '') : (session.currentQuestion?.answerKey ?? ''));
+  // The served question carries no answer key — the expected answer only comes
+  // back with the grading result, after the student has committed to an answer.
+  const answerKey = result.gradingResult?.rubricResult?.expected;
 
   // Highlight choice buttons
   document.querySelectorAll('.choice-btn').forEach((btn) => {
     const key = btn.dataset.key;
     if (key === chosenKey && correct) btn.classList.add('correct');
     else if (key === chosenKey && !correct) btn.classList.add('incorrect');
-    else if (!correct && key === String(session.currentQuestion?.answerKey)) btn.classList.add('correct');
+    else if (!correct && key === String(answerKey)) btn.classList.add('correct');
   });
 
   const resultLabel = document.getElementById('q-result-label');
@@ -301,8 +312,8 @@ function showAnswerResult(result, chosenKey) {
   resultLabel.className = correct ? 'correct' : 'incorrect';
 
   const answerLine = document.getElementById('q-answer-line');
-  if (!correct && session.currentQuestion?.answerKey) {
-    answerLine.textContent = `Correct answer: ${session.currentQuestion.answerKey}`;
+  if (!correct && answerKey) {
+    answerLine.textContent = `Correct answer: ${answerKey}`;
   } else {
     answerLine.textContent = '';
   }
@@ -326,8 +337,9 @@ async function sendStudentQuestion() {
     const response = await apiFetch('/tutor/question', {
       method: 'POST',
       body: JSON.stringify({
+        studentId: session.studentId,
         leafTopicId: session.currentTopicId,
-        studentQuestion: text,
+        message: text,
         lessonContent: session.lessonContent,
       }),
     });

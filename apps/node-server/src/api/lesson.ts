@@ -7,6 +7,7 @@ import {
   getOrCreateTopicState,
 } from '@brainule/core';
 import { CourseRepository } from '@brainule/storage';
+import { asyncHandler } from './asyncHandler';
 
 export function createLessonRouter(
   tutorAgent: TutorAgent,
@@ -17,7 +18,7 @@ export function createLessonRouter(
   const router = Router();
 
   // POST /lessons/generate — body: { studentId, leafTopicId }
-  router.post('/generate', async (req: Request, res: Response) => {
+  router.post('/generate', asyncHandler(async (req: Request, res: Response) => {
     const { studentId, leafTopicId } = req.body as { studentId?: string; leafTopicId?: string };
     if (!studentId || !leafTopicId) {
       res.status(400).json({ error: 'studentId and leafTopicId are required' });
@@ -43,7 +44,7 @@ export function createLessonRouter(
     });
 
     res.json(lesson);
-  });
+  }));
 
   return router;
 }

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { StudentModelService } from '@brainule/core';
 import { CourseRepository } from '@brainule/storage';
+import { asyncHandler } from './asyncHandler';
 
 export function createStudentRouter(
   studentService: StudentModelService,
@@ -9,7 +10,7 @@ export function createStudentRouter(
   const router = Router();
 
   // POST /students/:studentId — create or retrieve student session
-  router.post('/:studentId', async (req: Request, res: Response) => {
+  router.post('/:studentId', asyncHandler(async (req: Request, res: Response) => {
     const { studentId } = req.params;
     const { courseId } = req.body as { courseId?: string };
     if (!courseId) {
@@ -18,10 +19,10 @@ export function createStudentRouter(
     }
     const state = await studentService.getStudentState(studentId, courseId);
     res.json(state);
-  });
+  }));
 
   // GET /students/:studentId/progress
-  router.get('/:studentId/progress', async (req: Request, res: Response) => {
+  router.get('/:studentId/progress', asyncHandler(async (req: Request, res: Response) => {
     const { studentId } = req.params;
     const pkg = await courseRepo.getCoursePackage();
     const state = await studentService.getStudentState(studentId, pkg.metadata.courseId);
@@ -43,7 +44,7 @@ export function createStudentRouter(
       activeCourseId: state.activeCourseId,
       topicStates,
     });
-  });
+  }));
 
   return router;
 }

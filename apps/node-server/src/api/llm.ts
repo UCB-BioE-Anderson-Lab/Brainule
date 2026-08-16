@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { LlmGateway } from '@brainule/llm';
 import { config } from '@brainule/shared';
+import { asyncHandler } from './asyncHandler';
 
 export function createLlmRouter(llmGateway: LlmGateway): Router {
   const router = Router();
 
   // GET /llm/smoke — dev-only smoke test
-  router.get('/smoke', async (_req: Request, res: Response) => {
+  router.get('/smoke', asyncHandler(async (_req: Request, res: Response) => {
     if (config.nodeEnv === 'production') {
       res.status(404).json({ error: 'Not found' });
       return;
@@ -16,7 +17,7 @@ export function createLlmRouter(llmGateway: LlmGateway): Router {
       userPrompt: 'Say "LLM smoke test OK" and nothing else.',
     });
     res.json({ provider: response.provider, model: response.model, text: response.text });
-  });
+  }));
 
   return router;
 }

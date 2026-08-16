@@ -38,7 +38,7 @@ everything else will be built into.
 - [ ] Build script: `tsc --project tsconfig.json`
 
 ### Shared package foundations
-- [ ] `packages/shared/src/config/index.ts` — reads env vars (`PORT`, `NODE_ENV`, `LLM_PROVIDER`, `ANTHROPIC_API_KEY`)
+- [ ] `packages/shared/src/config/index.ts` — reads env vars (`PORT`, `NODE_ENV`, `LLM_PROVIDER`, provider API keys — see M3)
 - [ ] `packages/shared/src/logging/index.ts` — simple structured logger (wraps `console` or `pino`)
 
 ### Root dev experience

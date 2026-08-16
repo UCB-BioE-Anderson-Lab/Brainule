@@ -1,7 +1,6 @@
 import { AssessmentItem, CoursePackage, LeafTopic, Misconception, LearningObjective } from '../types/course';
 import { GeneratedLesson, TutorResponse, DefaultTeachingParameters, TeachingParameters } from '../types/lesson';
 import { AnswerResult } from '../types/remediation';
-import { GradingResult } from '../types/assessment';
 import { StudentTopicState } from '../types/student';
 import { TutorAgent } from '../agents/tutorAgent';
 import { FailureAnalysisAgent } from '../agents/failureAnalysisAgent';
@@ -106,14 +105,17 @@ export class TutoringOrchestrator {
     }
 
     // Failure path: analyze and generate remediation
-    const [leafTopic, misconceptions, contentPack] = await Promise.all([
+    const [leafTopic, misconceptions] = await Promise.all([
       this.getLeafTopic(leafTopicId),
       this.getMisconceptions(leafTopicId),
-      this.corpusRetrievalAgent.retrieve(
-        { leafTopicId } as LeafTopic,
-        [],
-      ),
     ]);
+
+    // Retrieve with the real leaf topic so allowedKnowledgeTags and
+    // prerequisites are honoured — remediation must stay inside approved content.
+    const contentPack = await this.corpusRetrievalAgent.retrieve(
+      leafTopic,
+      leafTopic.prerequisiteLeafTopicIds,
+    );
 
     // Get the question to pass to failure analysis
     const pkg = await this.courseDataSource.getCoursePackage();
@@ -135,6 +137,10 @@ export class TutoringOrchestrator {
       leafTopic,
       contentPack,
       failureAnalysis,
+      failedQuestion: question,
+      studentAnswer: answer,
+      gradingResult,
+      topicMisconceptions: misconceptions,
       studentTopicState: updatedTopicState,
       parameters: DefaultTeachingParameters,
     });
@@ -142,17 +148,22 @@ export class TutoringOrchestrator {
     return { gradingResult, mastered: false, remediation, updatedTopicState };
   }
 
-  async answerStudentQuestion(
+  async answerStudentTopicQuestion(
+    studentId: string,
+    courseId: string,
     leafTopicId: string,
-    studentQuestion: string,
-    lessonContent: string,
+    message: string,
+    lessonContent = '',
   ): Promise<TutorResponse> {
-    const leafTopic = await this.getLeafTopic(leafTopicId);
+    const [leafTopic, state] = await Promise.all([
+      this.getLeafTopic(leafTopicId),
+      this.studentModelService.getStudentState(studentId, courseId),
+    ]);
     return this.tutorAgent.answerStudentQuestion({
       leafTopic,
       lessonContent,
-      studentQuestion,
-      studentTopicState: undefined as unknown as StudentTopicState, // not used in QA
+      studentQuestion: message,
+      studentTopicState: getOrCreateTopicState(state, leafTopicId),
     });
   }
 }

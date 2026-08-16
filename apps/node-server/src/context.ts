@@ -1,11 +1,12 @@
-import * as path from 'path';
 import { config } from '@brainule/shared';
 import { StudentModelService, CorpusRetrievalAgent, TutorAgent, FilePromptRepository, AssessmentAgent, GradingAgent, AssessmentService, FailureAnalysisAgent, TutoringOrchestrator } from '@brainule/core';
 import { FilesystemCourseRepository, InMemoryStudentStateRepository, InMemoryQuestionRepository } from '@brainule/storage';
 import { TagRetriever, TagRetrieverRepository } from '@brainule/retrieval';
 import { llmGateway } from './adapters/llm';
 
-const courseDir = path.resolve(process.cwd(), config.courseDir);
+// config.courseDir / config.promptsDir are already absolute (resolved against
+// the workspace root), so the server behaves the same from any working directory.
+const courseDir = config.courseDir;
 
 export const courseRepo = new FilesystemCourseRepository(courseDir);
 
@@ -19,8 +20,7 @@ export const tagRetriever = new TagRetriever(async () => {
 export const retrievalRepo = new TagRetrieverRepository(tagRetriever);
 export const corpusRetrievalAgent = new CorpusRetrievalAgent(retrievalRepo);
 
-const promptsDir = path.resolve(process.cwd(), config.promptsDir);
-const promptRepo = new FilePromptRepository(promptsDir);
+const promptRepo = new FilePromptRepository(config.promptsDir);
 export const tutorAgent = new TutorAgent(llmGateway, promptRepo);
 
 // Assessment & Grading — lazy-initialized from course package

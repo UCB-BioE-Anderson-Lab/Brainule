@@ -4,7 +4,6 @@ title: Functions, Parameters, Return Values, and Scope
 description: Defining and calling functions, passing arguments, and using return values.
 leafTopicIds:
   - python_function_definitions
-  - python_scope_and_closures
 prerequisiteTopicIds:
   - data_types_and_variables
   - control_flow

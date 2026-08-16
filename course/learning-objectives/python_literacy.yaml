@@ -1,0 +1,55 @@
+- learningObjectiveId: lo_primitive_identify
+  leafTopicId: python_primitive_types
+  statement: >
+    Identify the type of a Python value (int, float, str, bool) and predict the
+    type of the result of an expression combining them.
+  skillType: comprehension
+
+- learningObjectiveId: lo_primitive_operations
+  leafTopicId: python_primitive_types
+  statement: >
+    Determine which operations are valid for a given pair of primitive types,
+    and convert between types explicitly when an operation would otherwise fail.
+  skillType: application
+
+- learningObjectiveId: lo_list_index
+  leafTopicId: python_lists_and_indexing
+  statement: >
+    Retrieve elements and sublists using positive indices, negative indices,
+    and slice notation, including the exclusive upper bound.
+  skillType: application
+
+- learningObjectiveId: lo_list_mutability
+  leafTopicId: python_lists_and_indexing
+  statement: >
+    Predict how a list is affected by in-place mutation versus rebinding, and
+    explain what happens when two names refer to the same list.
+  skillType: analysis
+
+- learningObjectiveId: lo_for_loop_basic
+  leafTopicId: python_for_loops
+  statement: >
+    Write a for loop that iterates over a list, string, or range, and trace the
+    value of the loop variable on each iteration.
+  skillType: application
+
+- learningObjectiveId: lo_for_loop_comprehension
+  leafTopicId: python_for_loops
+  statement: >
+    Rewrite a simple accumulation loop as a list comprehension and explain when
+    each form is clearer.
+  skillType: application
+
+- learningObjectiveId: lo_function_define
+  leafTopicId: python_function_definitions
+  statement: >
+    Define a function with positional, keyword, and default parameters, and
+    call it correctly from elsewhere in a program.
+  skillType: application
+
+- learningObjectiveId: lo_function_return
+  leafTopicId: python_function_definitions
+  statement: >
+    Distinguish returning a value from printing it, and explain what a caller
+    receives from a function with no explicit return statement.
+  skillType: analysis

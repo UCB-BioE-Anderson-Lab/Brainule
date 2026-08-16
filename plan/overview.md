@@ -38,7 +38,7 @@ topic is taught — without routine instructor intervention.
 | Web framework | Express |
 | Schema validation | zod |
 | Package manager | pnpm workspaces (monorepo) |
-| LLM | OpenAI GPT-4o (primary), Google Gemini (alternative), provider-agnostic abstraction |
+| LLM | OpenAI GPT-4o (primary), Google Gemini (alternative), Mock (tests/offline), provider-agnostic abstraction |
 | Storage (initial) | In-memory + JSON files (dev), Google Sheets (prod) |
 | Storage (later) | Postgres on Cloud Run |
 | Deploy | Google Cloud Run via Docker |
@@ -70,7 +70,6 @@ topic is taught — without routine instructor intervention.
   /llm                  — LlmClient interface + provider adapters
     /src
       /clients
-        anthropic.ts
         openai.ts
         gemini.ts
         mock.ts
@@ -101,12 +100,15 @@ topic is taught — without routine instructor intervention.
   /units
   /topics
   /leaf-topics
+  /learning-objectives
   /misconceptions
   /question-banks
   /corpus
   corpus-manifest.yaml
-  /visualization-guides
+  /visualization-guides   — (planned; no loader yet)
 /plan                   — this folder
+/docs                   — implementation status
+/legacy/apps-script     — Brainule v1, the original Apps Script app
 ```
 
 ---
@@ -146,12 +148,16 @@ topic is taught — without routine instructor intervention.
 | M11 | Analysis & Analytics | 2 |
 | M12 | Cloud Run Deployment | 2 |
 
+M0–M8 are implemented; M9–M12 are not. See [`../docs/STATUS.md`](../docs/STATUS.md)
+for a milestone-by-milestone account of what is built and where the code
+deliberately departs from these plans.
+
 ---
 
 ## Key Design Rules
 
 1. Core domain code in `/packages/core` must have **zero** dependencies on Express, Apps Script, or any specific LLM SDK.
-2. All LLM calls go through `LlmClient` interface — never import Anthropic SDK in core agents.
+2. All LLM calls go through the `LlmClient` interface — never import a provider SDK (`openai`, `@google/generative-ai`, …) in core agents.
 3. All storage access goes through repository interfaces — never import Sheets/Postgres clients in agents.
 4. All prompts live in `/packages/prompts` as markdown files — never hardcode prompts in agent code.
 5. The TutorAgent must **not** receive future assessment questions.

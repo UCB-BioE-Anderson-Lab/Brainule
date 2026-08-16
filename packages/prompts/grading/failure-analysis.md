@@ -14,7 +14,7 @@ You are a learning analytics assistant. Analyze why a student got a question wro
 
 Respond with JSON only — no other text:
 {
-  "failureType": "<conceptual|procedural|careless|unclear>",
+  "failureType": "<conceptual|procedural|careless|language|unknown>",
   "summary": "<one sentence describing what went wrong>",
   "likelyMisconceptionLabels": ["<label1>", "..."],
   "remediationHints": ["<hint1>", "..."]

@@ -1,0 +1,13 @@
+- learningObjectiveId: lo_dna_string_ops
+  leafTopicId: dna_string_representation
+  statement: >
+    Represent a DNA sequence as a Python string and extract a subsequence for a
+    given genetic region using slice notation.
+  skillType: application
+
+- learningObjectiveId: lo_dna_complement
+  leafTopicId: dna_string_representation
+  statement: >
+    Compute the complement and the reverse complement of a DNA sequence, and
+    explain why the reverse step is required to preserve 5'→3' orientation.
+  skillType: analysis

@@ -89,6 +89,32 @@ export interface AssessmentItem {
   active: boolean;
 }
 
+export interface VisualizationGuide {
+  visualizationGuideId: string;
+  leafTopicId: string;
+  label: string;
+  guidance: string;
+  preferredQuestionTypes: string[];
+}
+
+export interface AssessmentBank {
+  assessmentBankId: string;
+  leafTopicId: string;
+  questionIds: string[];
+  generationPolicy: string;
+}
+
+export interface ParametricQuestionTemplate {
+  templateId: string;
+  leafTopicId: string;
+  questionType: QuestionType;
+  stemTemplate: string;
+  parameters: Record<string, unknown>;
+  generationRules: string;
+  answerFunctionRef: string;
+  rubricTemplate: string | Record<string, unknown>;
+}
+
 export interface CorpusDocument {
   docId: string;
   title: string;

@@ -49,7 +49,7 @@ Node.js backend.
 - [ ] Code blocks: apply `<pre><code>` styling (port v1 `<python>` tag logic if needed)
 
 ### Bootstrap / session init endpoint
-- [ ] `GET /app-bootstrap` returns `{ courseId, courseTitle, studentId }` for page init
+- [ ] `GET /app-bootstrap?studentId=` returns `{ courseId, courseTitle, studentId }` for page init (echoes the caller's id, or mints one for a first-time visitor)
 - [ ] `POST /students/:id` with `{ courseId }` creates or returns existing student session
 
 ### Quiz UI details

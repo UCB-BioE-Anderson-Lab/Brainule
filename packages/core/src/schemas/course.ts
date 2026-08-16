@@ -92,6 +92,32 @@ export const AssessmentItemSchema = z.object({
   active: z.boolean().default(true),
 });
 
+export const VisualizationGuideSchema = z.object({
+  visualizationGuideId: z.string(),
+  leafTopicId: z.string(),
+  label: z.string(),
+  guidance: z.string(),
+  preferredQuestionTypes: z.array(z.string()).default([]),
+});
+
+export const AssessmentBankSchema = z.object({
+  assessmentBankId: z.string(),
+  leafTopicId: z.string(),
+  questionIds: z.array(z.string()).default([]),
+  generationPolicy: z.string().default('random'),
+});
+
+export const ParametricQuestionTemplateSchema = z.object({
+  templateId: z.string(),
+  leafTopicId: z.string(),
+  questionType: QuestionTypeSchema,
+  stemTemplate: z.string(),
+  parameters: z.record(z.unknown()).default({}),
+  generationRules: z.string().default(''),
+  answerFunctionRef: z.string().default(''),
+  rubricTemplate: z.union([z.string(), z.record(z.unknown())]).default(''),
+});
+
 export const CorpusDocumentSchema = z.object({
   docId: z.string(),
   title: z.string(),

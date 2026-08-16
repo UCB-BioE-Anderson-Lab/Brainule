@@ -1,278 +1,284 @@
-# Brainule
+# Brainule 2.0
 
-A Google Apps Script web app for interactive multiple-choice study review. Students select a topic, read its scope, answer questions with immediate feedback, and can copy an LLM prompt for deeper explanation.
+A curriculum-bounded, multi-agent STEM tutoring platform. Instructors author a course
+package that defines the approved knowledge universe and assessment scope; the system
+generates lessons with an LLM, quizzes the student from the topic's question bank,
+diagnoses wrong answers, and re-teaches until the topic is mastered.
 
-Access requires a Google account. No custom login UI — access control is handled entirely by Apps Script deployment settings.
+The instructor defines *what* may be taught. The system learns *how* to teach it.
+
+- Full product/technical specification: [`brainule_2.0.txt`](brainule_2.0.txt)
+- Architecture and milestone plans: [`plan/`](plan/) (start with [`plan/overview.md`](plan/overview.md))
+- Implementation status against those plans: [`docs/STATUS.md`](docs/STATUS.md)
+- The original Apps Script app (v1, legacy): [`legacy/apps-script/`](legacy/apps-script/)
 
 ---
 
 ## Table of contents
 
-- [Architecture overview](#architecture-overview)
+- [Quick start](#quick-start)
+- [How it works](#how-it-works)
 - [Repository layout](#repository-layout)
-- [Prerequisites](#prerequisites)
-- [Installation and first-time setup](#installation-and-first-time-setup)
-- [Development workflow](#development-workflow)
-- [Course sheet format](#course-sheet-format)
-- [Creating a new course](#creating-a-new-course)
-- [Data collection (future)](#data-collection-future)
-- [Question schema reference](#question-schema-reference)
+- [Configuration](#configuration)
+- [API reference](#api-reference)
+- [Authoring a course](#authoring-a-course)
+- [Prompts](#prompts)
+- [Development](#development)
+- [What is not built yet](#what-is-not-built-yet)
 
 ---
 
-## Architecture overview
+## Quick start
 
-Brainule separates the **app** (this repository, deployed as an Apps Script web app) from the **content** (Google Sheets stored in a Drive folder). The app never needs to be modified to add or change course content.
+Requires **Node.js ≥ 20** and **pnpm**.
 
-```
-Browser
-  ↕
-Google Apps Script  (doGet: reads ?course= parameter)
-  ↕
-Google Drive folder  ("Brainule Courses")
-  ↕
-Course spreadsheet   (one per course, named by slug)
-  ↕
-  ├── Overview tab   → topic list + course metadata
-  └── <topic_slug> tabs  → questions for each topic
+```bash
+pnpm install
+pnpm dev
 ```
 
-**Request flow:**
-1. Student visits `<web-app-url>?course=bioe_234_midterm`
-2. `doGet()` looks for a spreadsheet named `bioe_234_midterm` in the Brainule Courses folder
-3. Reads the Overview tab (topics) and all topic tabs (questions)
-4. Injects everything as `window.BRAINULE_BOOTSTRAP` and serves the page
-5. Front-end JS renders the three-panel study UI
+Open <http://localhost:3000>. With no configuration the server runs on the **mock LLM
+provider**, so the whole loop — topics, lessons, quizzes, grading, remediation — works
+end to end with no API key and no network calls. Lesson text will read
+`Mock LLM response.` until a real provider is configured.
 
-The front end is plain HTML, CSS, and JavaScript — no framework, no module bundler. It is entirely agnostic to where the content came from.
+To use a real provider:
+
+```bash
+cp .env.example .env      # then edit it
+export LLM_PROVIDER=openai OPENAI_API_KEY=sk-...
+pnpm dev
+```
+
+The server can be started from any working directory — the course package and prompt
+files are resolved against the workspace root, not the current directory.
+
+```bash
+pnpm build && pnpm start  # production build, serves the same app from dist/
+```
+
+---
+
+## How it works
+
+```
+Browser (three-panel UI)
+   │
+   ├── GET  /course                 topic tree
+   ├── GET  /students/:id/progress  mastery per leaf topic
+   ├── POST /tutor/start            ── TutoringOrchestrator ──┐
+   ├── GET  /tutor/next-question                              │
+   ├── POST /tutor/answer                                     │
+   └── POST /tutor/question                                   │
+                                                              ▼
+   CorpusRetrievalAgent ──→ approved chunks for the leaf topic
+   TutorAgent           ──→ lesson / remediation / Q&A   ─┐
+   AssessmentAgent      ──→ unseen question from the bank │ all LLM calls go
+   GradingAgent         ──→ GradingResult                 │ through LlmClient
+   FailureAnalysisAgent ──→ FailureAnalysis               ─┘
+   StudentModelService  ──→ StudentState + mastery policy
+```
+
+The loop for one leaf topic:
+
+1. The student picks a topic. `CorpusRetrievalAgent` gathers only the corpus chunks
+   tagged for that topic (and its prerequisites).
+2. `TutorAgent` generates a lesson from those chunks under the current teaching
+   parameters. It is never shown future quiz questions.
+3. `AssessmentAgent` serves a random question from the topic's bank, avoiding the
+   student's five most recent items.
+4. `GradingAgent` grades it — deterministically for multiple-choice and numeric,
+   via an LLM rubric for open-ended types.
+5. Correct → the mastery policy marks the topic mastered (default: one correct answer).
+6. Incorrect → `FailureAnalysisAgent` diagnoses the misconception, `TutorAgent`
+   generates remediation from the failed item as *evidence* without revealing its
+   answer, and the next question is a different item from the same bank.
 
 ---
 
 ## Repository layout
 
 ```
-Brainule/
-├── .clasp.json               — clasp config: links this repo to the Apps Script project
-├── README.md
-└── src/                      — everything pushed to Apps Script (clasp rootDir)
-    ├── appsscript.json       — Apps Script manifest (timezone, runtime)
-    ├── Code.gs               — server-side: doGet(), sheet readers, setup functions
-    ├── Index.html            — root HTML template; injects bootstrap data and includes all JS
-    ├── Styles.html           — all CSS
-    ├── App.html              — reference only: lists JS include order (not in include chain)
-    └── js/
-        ├── bootstrap.js.html         — validates window.BRAINULE_BOOTSTRAP on load
-        ├── content_service.js.html   — normalizes bootstrap data into runtime structures
-        ├── question_factory.js.html  — routes question_format to the correct subclass
-        ├── event_logger.js.html      — no-op event logger (stub for future analytics)
-        ├── renderers.js.html         — pure DOM rendering functions (no state)
-        ├── controller.js.html        — all app state, navigation, and event wiring
-        └── questions/
-            ├── question_base.js.html     — QuestionBase class (abstract interface)
-            └── multiple_choice.js.html   — MultipleChoiceQuestion subclass
+/apps
+  /node-server         Express server, API routes, static three-panel UI
+    /public            index.html, app.js, styles.css — no framework, no bundler
+    /src/api           route handlers
+    /src/adapters      runtime adapters (LLM gateway wiring)
+    /src/context.ts    dependency injection: builds every agent and repository
+/packages
+  /core                domain logic — runtime-agnostic, no Express, no LLM SDKs
+    /src/agents        TutorAgent, AssessmentAgent, GradingAgent, FailureAnalysisAgent,
+                       CorpusRetrievalAgent
+    /src/orchestration TutoringOrchestrator — the main loop
+    /src/policies      mastery policy
+    /src/schemas       zod schemas for course and student data
+    /src/services      course loader, prompt repository, student model, assessment service
+    /src/types         TypeScript interfaces for every domain object
+  /llm                 LlmClient interface + OpenAI, Gemini, and Mock adapters
+  /prompts             prompt markdown files — the only place prompt text lives
+  /retrieval           corpus chunking and tag-based retrieval
+  /storage             repository interfaces + filesystem/in-memory implementations
+  /shared              config, structured logger, id and hash utilities
+/course                the course package (BioE 134/234 Midterm Prep)
+/plan                  milestone specifications M0–M12
+/docs                  implementation status
+/legacy/apps-script    Brainule v1 — the original Apps Script app (still deployable)
 ```
 
-### Why `.js.html` extensions?
+Two rules hold this together and are worth preserving:
 
-Apps Script's `HtmlService` only serves HTML files. JavaScript is wrapped in `<script>` tags inside `.html` files. The `.js.html` double extension is a clasp convention: clasp strips the trailing `.html` when pushing, so `bootstrap.js.html` is stored in Apps Script as `js/bootstrap.js` and included as `include('js/bootstrap.js')`.
+- `packages/core` imports no Express, no Apps Script globals, and no provider SDK.
+  Agents depend on the `LlmClient` interface and on repository interfaces only.
+- Prompt text lives in `packages/prompts/*.md`, never inline in agent code.
 
 ---
 
-## Prerequisites
+## Configuration
 
-- Node.js (any recent version)
-- A Google account with access to Google Apps Script
-- `clasp` installed globally:
+All configuration is environment variables, read once in `packages/shared/src/config`.
+See [`.env.example`](.env.example).
 
-```bash
-sudo npm install -g @google/clasp
-```
-
-- clasp authenticated (run once, opens a browser):
-
-```bash
-clasp login
-```
-
----
-
-## Installation and first-time setup
-
-### 1. Clone and push to Apps Script
-
-```bash
-git clone <repo-url>
-cd Brainule
-clasp push --force
-```
-
-The `.clasp.json` is already linked to the existing Apps Script project. To start a completely fresh project instead:
-
-```bash
-rm .clasp.json
-clasp create --title "Brainule" --type standalone --rootDir src
-clasp push --force
-```
-
-### 2. Deploy as a web app
-
-Do this in the browser — **never use `clasp deploy`**, which resets access settings.
-
-1. Open the Apps Script editor: `https://script.google.com/d/<scriptId>/edit`
-2. **Deploy → New deployment**
-3. Gear icon → **Web app**
-4. **Execute as**: Me
-5. **Who has access**: Anyone with a Google account
-6. Click **Deploy** — save the web app URL
-
-### 3. Run first-time setup
-
-This creates the Drive folder and a seed course sheet.
-
-1. In the Apps Script editor, select `firstTimeSetup` from the function dropdown
-2. Click **Run**
-3. Grant Drive permissions when prompted
-4. Open **View → Executions** to see the folder URL and sheet URL in the log output
-
-`firstTimeSetup()` is safe to re-run — it does nothing if the folder is already configured.
-
-After running, your Drive will contain:
-- A folder called **Brainule Courses**
-- A spreadsheet named **bioe_234_midterm_sample** in that folder
-
-Test it: `<web-app-url>?course=bioe_234_midterm_sample`
-
----
-
-## Development workflow
-
-```bash
-# 1. Edit files in src/
-# 2. Push to Apps Script
-clasp push --force
-
-# 3. Update the deployment in the browser:
-#    Apps Script editor → Deploy → Manage deployments
-#    → pencil icon → "New version" → Deploy
-```
-
-The web app URL stays the same across version updates; only the version number increments.
-
-```bash
-clasp open    # opens the Apps Script editor in your browser
-```
-
-Server-side errors appear in the editor under **Executions** (left sidebar). If the web app shows a Drive error page instead of loading, that's a `doGet()` exception — check Executions for the message.
-
----
-
-## Course sheet format
-
-Each course is a single Google Spreadsheet in the Brainule Courses folder. The filename is the course slug (e.g. `bioe_234_midterm`) and is used directly in the URL.
-
-### Overview tab
-
-The first tab must be named **Overview**. It has two sections separated by a blank row.
-
-**Section 1 — course metadata** (key/value pairs):
-
-| field | value |
-|---|---|
-| title | BioE 134/234 Midterm Prep |
-
-**Section 2 — topic list** (one row per topic):
-
-| topic_slug | title | scope | path[0] | path[1] | path[2] |
-|---|---|---|---|---|---|
-| data_types_containers_and_sequence_operations | Data types, containers... | Variables as names... | cs | python_literacy | subtopics |
-
-`topic_slug` is the stable identifier used to name topic tabs and look up questions. It must be unique within the course.
-
-### Topic tabs
-
-Each topic that has questions gets its own tab, named exactly as the `topic_slug`. Topics with no tab show an empty-state message in the UI.
-
-Header row followed by one question per row:
-
-| slug | question_format | difficulty | topic | question | answer | explanation | choice[A] | choice[B] | choice[C] | choice[D] |
-|---|---|---|---|---|---|---|---|---|---|---|
-| name-binding | multiple_choice | easy | Variable references... | How many elements... | B | Assignment binds... | 3, because... | 4, because... | 4, because... | Error... |
-
-- `answer` is the key of the correct choice (e.g. `B`)
-- `choice[X]` columns are collected into a `choices` object: `{ A: "...", B: "...", ... }`
-- Any number of choices is supported; add more `choice[X]` columns as needed
-- Blank `choice[X]` cells are ignored
-
-### Text formatting in question and explanation cells
-
-| Markup | Renders as |
-|---|---|
-| `<python>x = 1</python>` | Inline code |
-| `<python>` + newline + code + newline + `</python>` | Code block |
-| `<pre>ATGCATGC</pre>` | Inline monospace (for sequences, literals) |
-
----
-
-## Creating a new course
-
-### Option A: use the built-in seed sheet as a template
-
-1. Open the **bioe_234_midterm_sample** sheet in Drive
-2. **File → Make a copy** — name the copy your new course slug (e.g. `my_course_fall_2026`)
-3. Move the copy to the **Brainule Courses** folder
-4. Edit the Overview tab and topic tabs with your content
-5. Visit `<web-app-url>?course=my_course_fall_2026`
-
-### Option B: create from the Apps Script editor (advanced)
-
-These internal helpers can be called from the Apps Script editor's script console:
-
-```javascript
-// Blank sheet with correct headers — fill in content manually:
-createBlankCourseSheet_('my_course_fall_2026', 'My Course — Fall 2026')
-
-// Pre-populated with the built-in sample content:
-createCourseSheet_('my_course_slug', 'My Course Title')
-```
-
----
-
-## Data collection (future)
-
-Every user interaction (question presented, answer submitted, Gemini prompt copied) is sent to `EventLogger` in `js/event_logger.js.html`. Currently a no-op — events are received but nothing is stored.
-
-The interface:
-
-```javascript
-EventLogger.logQuestionPresented({ topicSlug, questionSlug, questionFormat, presentedAt })
-EventLogger.logAnswerSubmitted({ topicSlug, questionSlug, questionFormat, submittedAnswer, canonicalAnswer, isCorrect, scoreValue, submittedAt })
-EventLogger.logGeminiPromptCopied({ topicSlug, questionSlug, questionFormat, copiedAt })
-```
-
-To activate logging, replace `NoOpEventLogger` with a class that calls `google.script.run` to invoke a server-side write to a Google Sheet. Planned structure: one responses spreadsheet per course, one tab per topic, one row per event. No front-end changes needed.
-
----
-
-## Question schema reference
-
-### Base fields (all question types)
-
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `slug` | string | yes | Stable identifier within the topic |
-| `question_format` | string | yes | `"multiple_choice"` is the only supported value in v1 |
-| `difficulty` | string | yes | `"easy"`, `"medium"`, or `"hard"` |
-| `topic` | string | yes | Short descriptor shown beneath the difficulty label |
-| `question` | string | yes | Full question text; supports `<python>` and `<pre>` markup |
-| `explanation` | string | yes | Shown after the student submits an answer |
-
-### Multiple choice additional fields
-
-| Field | Type | Notes |
+| Variable | Default | Purpose |
 |---|---|---|
-| `choices` | object | `{ A: "text", B: "text", ... }` — any number of keys, order preserved |
-| `answer` | string | The key of the correct choice |
+| `PORT` | `3000` | HTTP port |
+| `NODE_ENV` | `development` | `production` disables the dev-only endpoints |
+| `LLM_PROVIDER` | `mock` | `openai`, `gemini`, or `mock` |
+| `LLM_MODEL` | `gpt-4o` / `gemini-1.5-pro` | Model override for the active provider |
+| `OPENAI_API_KEY` | — | Required when `LLM_PROVIDER=openai` |
+| `GEMINI_API_KEY` | — | Required when `LLM_PROVIDER=gemini` |
+| `COURSE_DIR` | `course` | Course package directory (relative to workspace root, or absolute) |
+| `PROMPTS_DIR` | `packages/prompts` | Prompt directory (relative to workspace root, or absolute) |
+| `STORAGE_BACKEND` | `memory` | Only `memory` is implemented; student state is lost on restart |
+| `EXPERIMENT_EPSILON` | `0.3` | Reserved for M10 experimentation; unused today |
 
-### Future-safe optional fields (tolerated, not displayed)
+Adding a provider means writing one adapter in `packages/llm/src/clients/` and adding
+one case to `createLlmClient`. No agent, orchestration, or prompt code changes.
 
-`tags`, `source_refs`, `author_notes`, `version`, `learning_objective`, `lesson_prompt`
+---
+
+## API reference
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/health` | Liveness — `{ status, version }` |
+| `GET` | `/app-bootstrap?studentId=` | Page init: course id, title, and the student id (minted if absent) |
+| `GET` | `/course` | Course metadata and the leaf-topic list |
+| `POST` | `/students/:studentId` | Create or fetch a student session — body `{ courseId }` |
+| `GET` | `/students/:studentId/progress` | Mastery and attempt counts for every leaf topic |
+| `POST` | `/tutor/start` | Generate a lesson — body `{ studentId, leafTopicId, parameters? }` |
+| `GET` | `/tutor/next-question` | Next question — query `studentId`, `leafTopicId` |
+| `POST` | `/tutor/answer` | Grade an answer, returning remediation when wrong — body `{ studentId, leafTopicId, questionId, answer, latencyMs? }` |
+| `POST` | `/tutor/question` | In-lesson Q&A — body `{ studentId, leafTopicId, message, lessonContent? }` |
+| `GET` | `/students/:id/topics/:leafTopicId/question` | Question without the orchestrator (M6 contract) |
+| `POST` | `/students/:id/topics/:leafTopicId/answer` | Grade without the orchestrator (M6 contract) |
+| `POST` | `/lessons/generate` | Lesson generation without the orchestrator (M5 contract) |
+| `GET` | `/corpus/:leafTopicId` | Inspect what retrieval returns for a topic — dev aid |
+| `GET` | `/questions/:questionId` | Full item **including the answer key** — dev only, 404s in production |
+| `GET` | `/llm/smoke` | Round-trip the configured provider — dev only, 404s in production |
+
+Questions served to a student never include `answerKey` or `rubric`. The expected
+answer comes back in `gradingResult.rubricResult.expected` after the answer is
+submitted, which is what the UI uses to reveal the correct choice.
+
+---
+
+## Authoring a course
+
+A course is a directory of YAML and JSON files, validated with zod at load time. The
+shipped course is `course/`:
+
+```
+course/
+├── course.yaml               course metadata
+├── modules/*.yaml            Module     → unitIds
+├── units/*.yaml              Unit       → topicIds
+├── topics/*.yaml             Topic      → leafTopicIds
+├── leaf-topics/*.yaml        LeafTopic  → the unit of mastery and assessment
+├── learning-objectives/*.yaml LearningObjective, referenced by leaf topics
+├── misconceptions/*.yaml     Misconception library, keyed by leaf topic
+├── question-banks/*.json     AssessmentItem arrays, one file per bank
+├── corpus/*.md               the approved knowledge universe
+└── corpus-manifest.yaml      CorpusDocument metadata: tags, chunking strategy
+```
+
+Only leaf topics are assessed. Each leaf topic names its `allowedKnowledgeTags` — the
+retriever will surface only corpus documents carrying those tags, which is what keeps
+generated lessons inside the approved boundary. A leaf topic with no matching corpus
+document will still generate a lesson, but an ungrounded one; give every leaf topic at
+least one document.
+
+Each `.yaml` file may hold a single object or an array of them. Validation failures on
+individual records are logged and skipped, so one malformed question does not take down
+the course; a malformed `course.yaml` throws on startup.
+
+To point the server at a different course package:
+
+```bash
+COURSE_DIR=/path/to/other-course pnpm dev
+```
+
+---
+
+## Prompts
+
+Every LLM instruction is a markdown file in `packages/prompts/`, with `{{VARIABLE}}`
+placeholders substituted at call time:
+
+| File | Used by |
+|---|---|
+| `tutor/lesson.md` | `TutorAgent.generateLesson` |
+| `tutor/remediation.md` | `TutorAgent.generateRemediation` |
+| `tutor/qa.md` | `TutorAgent.answerStudentQuestion` |
+| `grading/grade.md` | `GradingAgent` — open-ended grading |
+| `grading/failure-analysis.md` | `FailureAnalysisAgent` |
+| `analysis/session-review.md` | reserved for M11 |
+| `experiment/policy-selection.md` | reserved for M10 |
+
+An unresolved placeholder logs a warning and is left in the prompt text rather than
+throwing — watch the logs for `Prompt variable not provided` after editing a prompt.
+
+---
+
+## Development
+
+```bash
+pnpm dev          # tsx watch — restarts on change
+pnpm build        # build all packages, then the server
+pnpm start        # run the built server
+pnpm typecheck    # tsc --noEmit across every package
+pnpm lint         # eslint over apps/ and packages/
+pnpm format       # prettier --write
+```
+
+Packages are built in dependency order (`shared → llm → core → retrieval/storage →
+node-server`). After changing a package's public types, rebuild before typechecking
+the server, since it consumes the emitted `.d.ts` files.
+
+There is no automated test suite yet — see below.
+
+---
+
+## What is not built yet
+
+Milestones **M0–M8** are implemented. The remainder of the roadmap in `plan/` is not:
+
+| Milestone | Status |
+|---|---|
+| M9 — event logging | **Not built.** No `EventLogRepository`; the events listed in spec §38 are not recorded. Only ad-hoc structured logs exist. |
+| M10 — experimentation | **Not built.** `ExperimentAgent` does not exist. Every lesson uses `DefaultTeachingParameters`; `EXPERIMENT_EPSILON` is unused. |
+| M11 — analysis & analytics | **Not built.** No `AnalysisAgent`, no policy performance tracking, no analytics endpoints. |
+| M12 — Cloud Run deployment | **Not built.** No Dockerfile, no Sheets storage adapter. `STORAGE_BACKEND=memory` is the only working option. |
+
+Also outstanding, and worth knowing before a live trial:
+
+- **Student state is in memory only.** Restarting the server clears all progress.
+- **No automated tests.** Spec §43 calls for schema, repository, prompt, mock-LLM,
+  orchestration, selection, mastery, and logging tests; none exist. `MockLlmClient` is
+  in place, so the fixtures for writing them are ready.
+- **Question banks are multiple-choice only.** The schema and `GradingAgent` support
+  numeric, short-text, and conceptual items; the shipped course does not use them.
+- **Visualization guides are unimplemented.** `VisualizationGuide` is defined as a type
+  per spec §9.9, but the loader does not read a `visualization-guides/` directory and
+  nothing consumes the guides.
+- **The lesson UI loads `marked.js` from a CDN.** With no network the lesson renders as
+  plain text with line breaks rather than formatted markdown.

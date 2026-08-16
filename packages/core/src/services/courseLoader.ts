@@ -34,12 +34,6 @@ function parseYamlFile<T>(filePath: string, schema: Parser<T>): T {
   return schema.parse(parsed);
 }
 
-function parseJsonFile<T>(filePath: string, schema: Parser<T>): T {
-  const raw = fs.readFileSync(filePath, 'utf8');
-  const parsed = JSON.parse(raw);
-  return schema.parse(parsed);
-}
-
 function globDir<T>(
   dir: string,
   ext: 'yaml' | 'json',
@@ -153,8 +147,13 @@ export async function loadCoursePackage(courseDir: string): Promise<CoursePackag
   logger.info('Course package loaded', {
     courseId: metadata.courseId,
     modules: modules.length,
+    units: units.length,
+    topics: topics.length,
     leafTopics: leafTopics.length,
+    misconceptions: misconceptions.length,
+    learningObjectives: learningObjectives.length,
     questions: assessmentItems.length,
+    corpusDocuments: corpusDocuments.length,
   });
 
   return {

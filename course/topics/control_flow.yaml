@@ -3,7 +3,6 @@ unitId: python_fundamentals
 title: Control Flow and Iteration
 description: How programs branch and repeat work.
 leafTopicIds:
-  - python_if_else
   - python_for_loops
 prerequisiteTopicIds:
   - data_types_and_variables
